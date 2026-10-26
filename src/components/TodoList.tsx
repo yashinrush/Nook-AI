@@ -255,24 +255,25 @@ export const TodoList: React.FC<TodoListProps> = ({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
-            width: '150px',
-            minWidth: '150px',
+            justifyContent: 'flex-start',
+            width: '168px',
+            minWidth: '168px',
             flexShrink: 0,
+            paddingBottom: '8px',
           }}
         >
           {/* Top: Score & Progress */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-                <span style={{ fontSize: '34px', fontWeight: 850, lineHeight: 1, letterSpacing: '-0.02em', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                <span style={{ fontSize: '32px', fontWeight: 850, lineHeight: 1, letterSpacing: '-0.02em', color: '#ffffff' }}>
                   {completedCount}
                 </span>
-                <span style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.4)' }}>
+                <span style={{ fontSize: '17px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.4)' }}>
                   /{totalCount}
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', marginTop: '3px', fontWeight: 500 }}>
+              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', marginTop: '2px', fontWeight: 500 }}>
                 Tasks Completed Today
               </div>
             </div>
@@ -298,63 +299,88 @@ export const TodoList: React.FC<TodoListProps> = ({
                   }}
                 />
               </div>
-              <div style={{ fontSize: '10px', color: '#22c55e', marginTop: '4px', fontWeight: 600 }}>
+              <div style={{ fontSize: '10px', color: '#22c55e', marginTop: '3px', fontWeight: 600 }}>
                 {Math.round(progressRatio * 100)}% done
               </div>
             </div>
           </div>
 
-          {/* Bottom: Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {/* Action Buttons: side-by-side row, cleanly aligned well above the boundary */}
+          <div style={{ display: 'flex', gap: '6px', marginTop: '12px', width: '100%' }}>
             <motion.button
               onClick={() => {
                 const next = !isAdding;
                 setIsAdding(next);
                 if (!next) setKeyboardFocus(false);
               }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
               style={{
+                flex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '5px',
-                padding: '6px 12px',
+                gap: '4px',
+                padding: '6px 8px',
                 borderRadius: '999px',
                 backgroundColor: isAdding ? '#22c55e' : 'rgba(255, 255, 255, 0.12)',
                 border: isAdding ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.12)',
                 color: isAdding ? '#03040a' : '#ffffff',
-                fontSize: '11.5px',
+                fontSize: '11px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
-              <Plus size={13} strokeWidth={2.8} /> {isAdding ? 'Adding Task...' : 'Add Task'}
+              <Plus size={12} strokeWidth={2.8} /> {isAdding ? 'Adding...' : 'Add Task'}
             </motion.button>
 
             <motion.button
               onClick={() => setIsEditing(!isEditing)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
               style={{
+                flex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '5px',
-                padding: '6px 12px',
+                gap: '4px',
+                padding: '6px 8px',
                 borderRadius: '999px',
                 backgroundColor: isEditing ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255, 255, 255, 0.08)',
                 border: isEditing ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
                 color: isEditing ? '#f87171' : 'rgba(255, 255, 255, 0.85)',
-                fontSize: '11.5px',
+                fontSize: '11px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
-              <Edit3 size={12} strokeWidth={2} /> {isEditing ? 'Done Editing' : 'Edit Tasks'}
+              <Edit3 size={11} strokeWidth={2} /> {isEditing ? 'Done' : 'Edit Task'}
             </motion.button>
+          </div>
+
+          {/* Status Badge */}
+          <div
+            style={{
+              marginTop: '10px',
+              padding: '5px 8px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              fontSize: '10.5px',
+              color: 'rgba(255, 255, 255, 0.55)',
+              textAlign: 'center',
+              fontWeight: 500,
+            }}
+          >
+            {totalCount === 0
+              ? 'No tasks for today'
+              : completedCount === totalCount
+              ? '🎉 All tasks completed!'
+              : `${totalCount - completedCount} task${totalCount - completedCount > 1 ? 's' : ''} remaining`}
           </div>
         </div>
 
