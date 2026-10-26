@@ -141,7 +141,7 @@ export const TodoList: React.FC<TodoListProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '6px 14px 4px',
+        padding: '10px 16px 8px',
         color: '#eceff7',
         userSelect: 'none',
         boxSizing: 'border-box',
@@ -149,36 +149,67 @@ export const TodoList: React.FC<TodoListProps> = ({
     >
       <style>{`
         .todo-tasks-scroll::-webkit-scrollbar {
-          width: 3px;
+          width: 4px;
         }
         .todo-tasks-scroll::-webkit-scrollbar-track {
           background: transparent;
         }
         .todo-tasks-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.25);
-          border-radius: 3px;
+          background: rgba(255, 255, 255, 0.22);
+          border-radius: 4px;
+        }
+        .todo-tasks-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.35);
         }
       `}</style>
 
-      {/* Header Row (img 2 style) */}
+      {/* Header Row */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          padding: '0 2px',
+          paddingBottom: '8px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+          flexShrink: 0,
         }}
       >
-        {/* Left: TodoList Title */}
-        <div style={{ display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 800, letterSpacing: '-0.01em' }}>
-          <span style={{ color: '#ffffff' }}>Todo</span>
-          <span style={{ color: '#22c55e' }}>List</span>
+        {/* Left: Back button + TodoList Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onBack && (
+            <motion.button
+              onClick={onBack}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.92 }}
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+              }}
+              title="Back"
+            >
+              <ChevronLeft size={15} />
+            </motion.button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 800, letterSpacing: '-0.01em' }}>
+            <span style={{ color: '#ffffff' }}>Todo</span>
+            <span style={{ color: '#22c55e' }}>List</span>
+          </div>
         </div>
 
         {/* Center: Progress Ring + Date & Time */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11px' }}>
-          <svg width="13" height="13" viewBox="0 0 20 20" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 20 20" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
             <circle cx="10" cy="10" r="7.5" stroke="rgba(255,255,255,0.18)" strokeWidth="2.5" fill="none" />
             <circle
               cx="10"
@@ -197,8 +228,8 @@ export const TodoList: React.FC<TodoListProps> = ({
           <span style={{ color: '#ffffff', fontWeight: 800 }}>{timeFormatted}</span>
         </div>
 
-        {/* Right: Audio Visualizer Bars (img 2 style) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', opacity: 0.85 }}>
+        {/* Right: Sound Bar Visualizer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', opacity: 0.85, width: '24px', justifyContent: 'flex-end' }}>
           <span style={{ width: '2px', height: '6px', background: '#ffffff', borderRadius: '1px' }} />
           <span style={{ width: '2px', height: '13px', background: '#ffffff', borderRadius: '1px' }} />
           <span style={{ width: '2px', height: '9px', background: '#ffffff', borderRadius: '1px' }} />
@@ -206,133 +237,142 @@ export const TodoList: React.FC<TodoListProps> = ({
         </div>
       </div>
 
-      {/* Main Row: Left Stats & Buttons, Right Tasks Stack */}
+      {/* Main Split Body: Left Stats & Actions, Right Tall Tasks Stack */}
       <div
         style={{
           display: 'flex',
           gap: '14px',
-          alignItems: 'center',
+          alignItems: 'stretch',
           justifyContent: 'space-between',
           width: '100%',
-          padding: '0 2px',
+          flex: 1,
+          padding: '8px 0',
+          minHeight: 0,
         }}
       >
-        {/* Left Column: Back button + Score row, and Action Buttons underneath */}
+        {/* Left Column: Stats & Action Buttons */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
-            minWidth: '155px',
+            justifyContent: 'space-between',
+            width: '150px',
+            minWidth: '150px',
+            flexShrink: 0,
           }}
         >
-          {/* Top row: Chevron Back Button + 4/5 Score & Subtitle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {onBack && (
-              <motion.button
-                onClick={onBack}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
-                style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  padding: 0,
-                }}
-                title="Back"
-              >
-                <ChevronLeft size={16} />
-              </motion.button>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: '30px', fontWeight: 850, lineHeight: 1, letterSpacing: '-0.02em', color: '#ffffff' }}>
-                {completedCount}/{totalCount}
+          {/* Top: Score & Progress */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                <span style={{ fontSize: '34px', fontWeight: 850, lineHeight: 1, letterSpacing: '-0.02em', color: '#ffffff' }}>
+                  {completedCount}
+                </span>
+                <span style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.4)' }}>
+                  /{totalCount}
+                </span>
               </div>
-              <div style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.55)', marginTop: '2px', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                Task Done Today
+              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', marginTop: '3px', fontWeight: 500 }}>
+                Tasks Completed Today
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ marginTop: '4px' }}>
+              <div
+                style={{
+                  width: '100%',
+                  height: '5px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '999px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${progressRatio * 100}%`,
+                    height: '100%',
+                    backgroundColor: '#22c55e',
+                    borderRadius: '999px',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: '10px', color: '#22c55e', marginTop: '4px', fontWeight: 600 }}>
+                {Math.round(progressRatio * 100)}% done
               </div>
             </div>
           </div>
 
-          {/* Bottom row: Add Task & Edit Task Pill Buttons */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          {/* Bottom: Action Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <motion.button
               onClick={() => {
                 const next = !isAdding;
                 setIsAdding(next);
                 if (!next) setKeyboardFocus(false);
               }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '4px 10px',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '6px 12px',
                 borderRadius: '999px',
-                backgroundColor: isAdding ? '#22c55e' : 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                backgroundColor: isAdding ? '#22c55e' : 'rgba(255, 255, 255, 0.12)',
+                border: isAdding ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.12)',
                 color: isAdding ? '#03040a' : '#ffffff',
-                fontSize: '11px',
+                fontSize: '11.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
             >
-              <Plus size={11} strokeWidth={2.8} /> Add Task
+              <Plus size={13} strokeWidth={2.8} /> {isAdding ? 'Adding Task...' : 'Add Task'}
             </motion.button>
 
             <motion.button
               onClick={() => setIsEditing(!isEditing)}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '4px 10px',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '6px 12px',
                 borderRadius: '999px',
-                backgroundColor: isEditing ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255, 255, 255, 0.1)',
-                border: isEditing ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(255, 255, 255, 0.12)',
-                color: isEditing ? '#f87171' : '#ffffff',
-                fontSize: '11px',
+                backgroundColor: isEditing ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255, 255, 255, 0.08)',
+                border: isEditing ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
+                color: isEditing ? '#f87171' : 'rgba(255, 255, 255, 0.85)',
+                fontSize: '11.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
             >
-              <Edit3 size={11} strokeWidth={2} /> {isEditing ? 'Done' : 'Edit Task'}
+              <Edit3 size={12} strokeWidth={2} /> {isEditing ? 'Done Editing' : 'Edit Tasks'}
             </motion.button>
           </div>
         </div>
 
-        {/* Right Column: Tasks Stack (img 2 style) */}
+        {/* Divider */}
+        <div style={{ width: '1px', backgroundColor: 'rgba(255, 255, 255, 0.08)', flexShrink: 0 }} />
+
+        {/* Right Column: Scrollable Task Stack */}
         <div
-          className="todo-tasks-scroll"
           style={{
             flex: 1,
-            maxWidth: '260px',
-            height: '84px',
-            maxHeight: '84px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '5px',
-            overflowY: 'auto',
-            paddingRight: '3px',
-            boxSizing: 'border-box',
+            minHeight: 0,
+            overflow: 'hidden',
           }}
         >
           {isAdding && (
-            <form onSubmit={addTask} style={{ display: 'flex', gap: '4px', height: '25px', flexShrink: 0 }}>
+            <form onSubmit={addTask} style={{ display: 'flex', gap: '5px', height: '28px', marginBottom: '8px', flexShrink: 0 }}>
               <input
                 ref={inputRef}
                 autoFocus
@@ -358,7 +398,7 @@ export const TodoList: React.FC<TodoListProps> = ({
                 }}
                 style={{
                   flex: 1,
-                  padding: '2px 8px',
+                  padding: '4px 10px',
                   borderRadius: '10px',
                   backgroundColor: 'rgba(255, 255, 255, 0.14)',
                   border: '1px solid #22c55e',
@@ -370,8 +410,8 @@ export const TodoList: React.FC<TodoListProps> = ({
               <button
                 type="submit"
                 style={{
-                  width: '25px',
-                  height: '25px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '10px',
                   backgroundColor: '#22c55e',
                   color: '#03040a',
@@ -384,7 +424,7 @@ export const TodoList: React.FC<TodoListProps> = ({
                 }}
                 title="Save"
               >
-                <Check size={13} strokeWidth={2.8} />
+                <Check size={14} strokeWidth={2.8} />
               </button>
               <button
                 type="button"
@@ -393,8 +433,8 @@ export const TodoList: React.FC<TodoListProps> = ({
                   setKeyboardFocus(false);
                 }}
                 style={{
-                  width: '25px',
-                  height: '25px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '10px',
                   backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   color: '#ffffff',
@@ -407,92 +447,106 @@ export const TodoList: React.FC<TodoListProps> = ({
                 }}
                 title="Cancel"
               >
-                <X size={12} />
+                <X size={13} />
               </button>
             </form>
           )}
 
-          {tasks.length === 0 ? (
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', margin: 'auto', textAlign: 'center' }}>
-              No tasks for today.
-            </div>
-          ) : (
-            tasks.map((task) => (
-              <motion.div
-                key={task.id}
-                onClick={() => toggleTask(task.id)}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  height: '25px',
-                  minHeight: '25px',
-                  padding: '0 10px',
-                  borderRadius: '10px',
-                  backgroundColor: task.completed
-                    ? 'rgba(14, 52, 26, 0.95)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  border: task.completed
-                    ? '1px solid rgba(34, 197, 94, 0.35)'
-                    : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
-                  boxSizing: 'border-box',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', overflow: 'hidden', minWidth: 0, flex: 1 }}>
-                  {task.completed ? <GreenCheckIcon size={14} /> : <IncompleteCircleIcon size={14} />}
-                  <span
-                    style={{
-                      fontSize: '11.5px',
-                      fontWeight: 550,
-                      color: task.completed ? 'rgba(255, 255, 255, 0.8)' : '#ffffff',
-                      textDecoration: task.completed ? 'line-through' : 'none',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {task.text}
-                  </span>
-                </div>
+          <div
+            className="todo-tasks-scroll"
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              overflowY: 'auto',
+              paddingRight: '4px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {tasks.length === 0 ? (
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11.5px', margin: 'auto', textAlign: 'center' }}>
+                No tasks for today.
+              </div>
+            ) : (
+              tasks.map((task) => (
+                <motion.div
+                  key={task.id}
+                  onClick={() => toggleTask(task.id)}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    minHeight: '28px',
+                    height: '28px',
+                    padding: '0 10px',
+                    borderRadius: '10px',
+                    backgroundColor: task.completed
+                      ? 'rgba(14, 52, 26, 0.95)'
+                      : 'rgba(255, 255, 255, 0.05)',
+                    border: task.completed
+                      ? '1px solid rgba(34, 197, 94, 0.35)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                    {task.completed ? <GreenCheckIcon size={14} /> : <IncompleteCircleIcon size={14} />}
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: 550,
+                        color: task.completed ? 'rgba(255, 255, 255, 0.75)' : '#ffffff',
+                        textDecoration: task.completed ? 'line-through' : 'none',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {task.text}
+                    </span>
+                  </div>
 
-                {isEditing && (
-                  <button
-                    onClick={(e) => deleteTask(task.id, e)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#f87171',
-                      cursor: 'pointer',
-                      padding: '2px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      flexShrink: 0,
-                      marginLeft: '4px',
-                    }}
-                    title="Delete task"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
-              </motion.div>
-            ))
-          )}
+                  {isEditing && (
+                    <button
+                      onClick={(e) => deleteTask(task.id, e)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#f87171',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexShrink: 0,
+                        marginLeft: '4px',
+                      }}
+                      title="Delete task"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </motion.div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Bottom Footer: Pagination Dots (img 2 style) */}
+      {/* Bottom Footer: Pagination Dots */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '4px',
-          paddingBottom: '2px',
+          paddingTop: '4px',
+          flexShrink: 0,
         }}
       >
         <span style={{ width: '3.5px', height: '3.5px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />

@@ -1550,7 +1550,7 @@ function App() {
     if (nectarMode === 'calendar') return settingsCalendarEnabled ? (caldav.connected ? 350 : 310) : 262;
     if (nectarMode === 'command-center') return isHovered ? 230 : 36;
     if (nectarMode === 'status') return 36;
-    if (nectarMode === 'todo') return 138;
+    if (nectarMode === 'todo') return 310;
     if (isMusicMode && isHovered) {
       const hasProgressBar = (mediaInfo.duration_ms ?? 0) > 0;
       let h = mediaLayout === 'compact' ? (hasProgressBar ? 132 : 116) : 120;
@@ -1633,8 +1633,8 @@ function App() {
           scaleY: 1,
           borderTopLeftRadius: isImpacted ? 0 : 18,
           borderTopRightRadius: isImpacted ? 0 : 18,
-          borderBottomLeftRadius: isCalendarMode ? 28 : 18,
-          borderBottomRightRadius: isCalendarMode ? 28 : 18,
+          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo') ? 28 : 18,
+          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo') ? 28 : 18,
           filter: "blur(0px)",
           pointerEvents: 'auto'
         }}
