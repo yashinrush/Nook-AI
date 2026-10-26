@@ -1,0 +1,55 @@
+.wc.windows-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.wc.windows-controls .win-btn {
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--nectar-text, #eceff7);
+  opacity: 0.82;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease, opacity 0.1s ease;
+}
+
+.wc.windows-controls.blurred .win-btn {
+  opacity: 0.4;
+}
+
+.wc.windows-controls .win-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  opacity: 1;
+}
+
+.wc.windows-controls .win-btn.close:hover {
+  background: #e81123 !important;
+  color: #ffffff !important;
+  opacity: 1;
+}
+
+.wc.windows-controls .win-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.wc.windows-controls .win-btn.close:active {
+  background: #bf0f1d !important;
+  color: #ffffff !important;
+}
+
+.light-mode .wc.windows-controls .win-btn {
+  color: #1a1a1a;
+}
+
+.light-mode .wc.windows-controls .win-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
