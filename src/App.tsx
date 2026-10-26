@@ -19,6 +19,7 @@ import type { WidgetConfig } from "./components/StatusWidgetConfig";
 import { NotchEyes } from "./components/NotchEyes";
 import { SyncedLyrics } from "./components/SyncedLyrics";
 import { TodoList } from "./components/TodoList";
+import { FileShelf } from "./components/FileShelf";
 import {
   Cpu,
   MemoryStick,
@@ -27,6 +28,7 @@ import {
   Mic2,
   CheckSquare,
   Eye,
+  FolderDown,
 } from "lucide-react";
 
 // Timer chime, synthesized with Web Audio so there's no asset. The context is made on the
@@ -855,8 +857,58 @@ function App() {
     invoke("change_notch_mode", { mode: notchMode });
   }, [notchMode, windowLabel]);
 
-  const [nectarMode, setNectarMode] = useState<'music' | 'calendar' | 'command-center' | 'status' | 'todo'>('status');
+  const [nectarMode, setNectarMode] = useState<'music' | 'calendar' | 'command-center' | 'status' | 'todo' | 'shelf'>('status');
+  const [isDraggingOverNotch, setIsDraggingOverNotch] = useState(false);
   const caldav = useCaldav();
+
+  // Listen for file drag-and-drop globally to morph notch into Drop Zone
+  useEffect(() => {
+    let dragCounter = 0;
+
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter++;
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+        setIsDraggingOverNotch(true);
+        setNectarMode('shelf');
+        setIsHovered(true);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        setIsDraggingOverNotch(false);
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter = 0;
+      setIsDraggingOverNotch(false);
+    };
+
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
 
   // Window height is now kept constant to prevent rendering layout lag and sharp corners
 
@@ -873,6 +925,7 @@ function App() {
       target.closest('.timer-column') ||
       target.closest('.cal-scroll') ||
       target.closest('.nusa-todo-container') ||
+      target.closest('.nook-file-shelf-container') ||
       target.closest('.synced-lyrics-container')
     ) {
       return;
@@ -902,9 +955,9 @@ function App() {
 
     // Music shifts position based on playing state
     const musicBeforeStatus = isPlaying && mediaInfo.has_media && settingsMusicModeEnabled;
-    const modes: ('command-center' | 'status' | 'music' | 'todo' | 'calendar')[] = musicBeforeStatus
-      ? ['command-center', 'music', 'status', 'todo', 'calendar']
-      : ['command-center', 'status', 'music', 'todo', 'calendar'];
+    const modes: ('command-center' | 'status' | 'music' | 'todo' | 'shelf' | 'calendar')[] = musicBeforeStatus
+      ? ['command-center', 'music', 'status', 'todo', 'shelf', 'calendar']
+      : ['command-center', 'status', 'music', 'todo', 'shelf', 'calendar'];
     const availableModes = modes.filter(m => {
       if (m === 'music' && (!settingsMusicModeEnabled || !mediaInfo.has_media)) return false;
       if (m === 'calendar' && !productivityEnabled) return false;
@@ -1522,7 +1575,7 @@ function App() {
       const totalWidgets = statusWidgets.left.length + statusWidgets.right.length;
       return Math.min(200 + totalWidgets * 65, 460);
     }
-    if (nectarMode === 'todo') return 480;
+    if (nectarMode === 'todo' || nectarMode === 'shelf') return 480;
     if (isMusicMode && (isHovered || compactLyricsOpen)) {
       return mediaLayout === 'compact' ? 300 : 340;
     }
@@ -1551,6 +1604,7 @@ function App() {
     if (nectarMode === 'command-center') return isHovered ? 230 : 36;
     if (nectarMode === 'status') return 36;
     if (nectarMode === 'todo') return 310;
+    if (nectarMode === 'shelf') return 255;
     if (isMusicMode && isHovered) {
       const hasProgressBar = (mediaInfo.duration_ms ?? 0) > 0;
       let h = mediaLayout === 'compact' ? (hasProgressBar ? 132 : 116) : 120;
@@ -1633,8 +1687,8 @@ function App() {
           scaleY: 1,
           borderTopLeftRadius: isImpacted ? 0 : 18,
           borderTopRightRadius: isImpacted ? 0 : 18,
-          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo') ? 28 : 18,
-          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo') ? 28 : 18,
+          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf') ? 28 : 18,
+          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf') ? 28 : 18,
           filter: "blur(0px)",
           pointerEvents: 'auto'
         }}
@@ -1643,12 +1697,12 @@ function App() {
         }}
         onHoverStart={() => {
           setIsHovered(true);
-          if (!compactLyricsOpen && nectarMode !== 'todo' && nectarMode !== 'calendar' && nectarMode !== 'command-center') {
+          if (!compactLyricsOpen && nectarMode !== 'todo' && nectarMode !== 'shelf' && nectarMode !== 'calendar' && nectarMode !== 'command-center') {
             setNectarMode(mediaInfo.has_media && isPlaying ? 'music' : 'status');
           }
         }}
         onHoverEnd={() => {
-          if (compactLyricsOpen || nectarMode === 'todo') return;
+          if (compactLyricsOpen || nectarMode === 'todo' || nectarMode === 'shelf') return;
           setIsHovered(false);
           const targetMode = mediaInfo.has_media && isPlaying && settingsMusicCompactNotch ? 'music' : 'status';
           if (nectarMode === 'music') {
@@ -2245,6 +2299,13 @@ function App() {
                         <CheckSquare size={14} />
                       </button>
                       <button
+                        className="cc-circular-btn"
+                        onClick={(e) => { e.stopPropagation(); setNectarMode('shelf'); }}
+                        title="Drop Zone & File Shelf"
+                      >
+                        <FolderDown size={14} color="#34d399" />
+                      </button>
+                      <button
                         className={`cc-circular-btn ${settingsMascotEyesEnabled ? 'active' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2365,6 +2426,26 @@ function App() {
                     style={{ width: '100%', height: '100%' }}
                   >
                     <TodoList onBack={() => setNectarMode('status')} timeString={time} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Drop Zone & File Shelf Mode */}
+              <AnimatePresence>
+                {nectarMode === 'shelf' && (
+                  <motion.div
+                    className="shelf-drawer-expanded"
+                    onClick={(e) => e.stopPropagation()}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <FileShelf
+                      onBack={() => setNectarMode('status')}
+                      isDraggingExternal={isDraggingOverNotch}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>

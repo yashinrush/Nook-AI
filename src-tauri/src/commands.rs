@@ -105,6 +105,32 @@ pub fn set_ignore_cursor_events(window: Window, ignore: bool) {
 }
 
 #[tauri::command]
+pub fn show_in_folder(path: String) {
+    if let Ok(metadata) = std::fs::metadata(&path) {
+        if metadata.is_dir() {
+            let _ = std::process::Command::new("explorer.exe")
+                .arg(&path)
+                .spawn();
+        } else {
+            let _ = std::process::Command::new("explorer.exe")
+                .args(["/select,", &path])
+                .spawn();
+        }
+    } else {
+        let _ = std::process::Command::new("explorer.exe")
+            .args(["/select,", &path])
+            .spawn();
+    }
+}
+
+#[tauri::command]
+pub fn open_file_path(path: String) {
+    let _ = std::process::Command::new("cmd")
+        .args(["/c", "start", "", &path])
+        .spawn();
+}
+
+#[tauri::command]
 pub async fn init_dock(app: AppHandle, mode: String) {
     // Backend guard: bail if dock is disabled in settings.
     // The frontend already checks this, but settings.json may have a stale

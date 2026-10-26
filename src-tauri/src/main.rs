@@ -106,6 +106,8 @@ fn main() {
             open_media_source_app,
 
             init_dock,
+            show_in_folder,
+            open_file_path,
             toggle_dock,
             change_dock_mode,
             change_notch_mode,
