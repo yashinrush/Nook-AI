@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   FileText,
   FileCode,
@@ -36,6 +36,7 @@ interface FileShelfProps {
   onBack?: () => void;
   className?: string;
   isDraggingExternal?: boolean;
+  onDropComplete?: () => void;
 }
 
 export function formatFileSize(bytes: number): string {
@@ -49,33 +50,34 @@ export function formatFileSize(bytes: number): string {
 export function getFileIcon(name: string, type: string) {
   const ext = name.split('.').pop()?.toLowerCase() || '';
   if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
-    return <ImageIcon size={22} className="text-emerald-400" color="#34d399" />;
+    return <ImageIcon size={26} color="#34d399" />;
   }
   if (type.startsWith('video/') || ['mp4', 'mkv', 'mov', 'avi', 'webm'].includes(ext)) {
-    return <Video size={22} className="text-amber-400" color="#fbbf24" />;
+    return <Video size={26} color="#fbbf24" />;
   }
   if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'].includes(ext)) {
-    return <Music size={22} className="text-purple-400" color="#c084fc" />;
+    return <Music size={26} color="#c084fc" />;
   }
   if (['zip', 'rar', '7z', 'tar', 'gz', 'iso'].includes(ext)) {
-    return <FileArchive size={22} className="text-orange-400" color="#fb923c" />;
+    return <FileArchive size={26} color="#fb923c" />;
   }
   if (['js', 'ts', 'tsx', 'jsx', 'rs', 'py', 'json', 'html', 'css', 'cpp', 'c', 'java', 'go'].includes(ext)) {
-    return <FileCode size={22} className="text-cyan-400" color="#22d3ee" />;
+    return <FileCode size={26} color="#22d3ee" />;
   }
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
-    return <FileSpreadsheet size={22} className="text-emerald-500" color="#10b981" />;
+    return <FileSpreadsheet size={26} color="#10b981" />;
   }
   if (['pdf', 'doc', 'docx', 'txt', 'md', 'rtf'].includes(ext)) {
-    return <FileText size={22} className="text-rose-400" color="#fb7185" />;
+    return <FileText size={26} color="#fb7185" />;
   }
-  return <File size={22} className="text-blue-400" color="#60a5fa" />;
+  return <File size={26} color="#60a5fa" />;
 }
 
 export const FileShelf: React.FC<FileShelfProps> = ({
   onBack,
   className = '',
   isDraggingExternal = false,
+  onDropComplete,
 }) => {
   const [items, setItems] = useState<ShelfItem[]>(() => {
     try {
@@ -88,11 +90,11 @@ export const FileShelf: React.FC<FileShelfProps> = ({
 
   const [isHoveringDrop, setIsHoveringDrop] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const dragCounterRef = useRef(0);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
-      // Filter out ephemeral blob preview URLs before saving to localStorage
       const storable = items.map(item => ({
         ...item,
         previewUrl: item.previewUrl && !item.previewUrl.startsWith('blob:') ? item.previewUrl : undefined,
@@ -100,6 +102,14 @@ export const FileShelf: React.FC<FileShelfProps> = ({
       localStorage.setItem('nook-shelf-items', JSON.stringify(storable));
     } catch {}
   }, [items]);
+
+  // Handle wheel scrolling: when user scrolls anywhere on the shelf, naturally go back to status!
+  const handleWheel = (e: React.WheelEvent) => {
+    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    if (Math.abs(delta) >= 15) {
+      onBack?.();
+    }
+  };
 
   const handleAddFiles = useCallback(async () => {
     try {
@@ -144,7 +154,6 @@ export const FileShelf: React.FC<FileShelfProps> = ({
     e.stopPropagation();
     if (!path) return;
     invoke('open_file_path', { path }).catch(() => {
-      // Fallback: opener
       import('@tauri-apps/plugin-opener').then((opener) => {
         opener.openPath(path).catch(() => {});
       }).catch(() => {});
@@ -170,7 +179,6 @@ export const FileShelf: React.FC<FileShelfProps> = ({
     e.dataTransfer.setData('text/plain', item.path || item.name);
     e.dataTransfer.effectAllowed = 'copyMove';
 
-    // If native drag plugin is available and we have absolute path, trigger native OS drag
     if (item.path) {
       try {
         const { startDrag } = await import('@crabnebula/tauri-plugin-drag');
@@ -182,11 +190,37 @@ export const FileShelf: React.FC<FileShelfProps> = ({
     }
   }, []);
 
-  // Internal Drop Zone Handlers (inside the component)
+  // Drop handlers
+  const onDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    setIsHoveringDrop(true);
+  }, []);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsHoveringDrop(true);
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsHoveringDrop(false);
+    }
+  }, []);
+
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCounterRef.current = 0;
     setIsHoveringDrop(false);
+    onDropComplete?.();
 
     const files = Array.from(e.dataTransfer.files);
     if (!files || files.length === 0) return;
@@ -213,28 +247,18 @@ export const FileShelf: React.FC<FileShelfProps> = ({
     });
 
     setItems((prev) => [...newItems, ...prev]);
-  }, []);
+  }, [onDropComplete]);
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
-    setIsHoveringDrop(true);
-  }, []);
-
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsHoveringDrop(false);
-  }, []);
-
-  const isDropping = isHoveringDrop || isDraggingExternal;
+  // Is actively dragging files right over the shelf area
+  const isActivelyDraggingOver = isHoveringDrop || (isDraggingExternal && items.length === 0);
 
   return (
     <div
       ref={dropRef}
       className={`nook-file-shelf-container ${className}`}
       onClick={(e) => e.stopPropagation()}
+      onWheel={handleWheel}
+      onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -260,11 +284,11 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           background: transparent;
         }
         .shelf-cards-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.22);
           border-radius: 4px;
         }
         .shelf-cards-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.35);
+          background: rgba(255, 255, 255, 0.4);
         }
       `}</style>
 
@@ -301,7 +325,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                 flexShrink: 0,
                 padding: 0,
               }}
-              title="Back"
+              title="Back (or scroll to exit)"
             >
               <ChevronLeft size={15} />
             </motion.button>
@@ -328,7 +352,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
 
         {/* Center Hint */}
         <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 500 }}>
-          Drag files here to stash
+          Scroll or click back to exit
         </div>
 
         {/* Right: Actions */}
@@ -381,7 +405,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
         </div>
       </div>
 
-      {/* Main Body: Active Drop Target OR File Shelf Carousel */}
+      {/* Main Body: File Shelf Cards List (Always Visible) or Empty State */}
       <div
         style={{
           flex: 1,
@@ -394,77 +418,60 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           padding: '6px 0',
         }}
       >
-        <AnimatePresence mode="wait">
-          {isDropping ? (
-            <motion.div
-              key="drop-overlay"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(34, 197, 94, 0.08)',
-                border: '2px dashed #22c55e',
-                borderRadius: '16px',
-                zIndex: 10,
-              }}
-            >
-              <motion.div
-                animate={{ y: [0, 4, 0] }}
-                transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
-              >
-                <ArrowDownCircle size={36} color="#22c55e" />
-              </motion.div>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
-                Release to Drop on Shelf
-              </span>
-              <span style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                Files will be saved in your quick stash
-              </span>
-            </motion.div>
-          ) : items.length === 0 ? (
-            <motion.div
-              key="empty-state"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                width: '100%',
-                height: '100%',
-                border: '1px dashed rgba(255, 255, 255, 0.12)',
-                borderRadius: '14px',
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-              }}
-            >
-              <FolderOpen size={28} color="rgba(255, 255, 255, 0.4)" />
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.85)' }}>
-                  Drop Zone Ready
+        {items.length === 0 ? (
+          /* Empty State Drop Zone */
+          <motion.div
+            key="empty-state"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+              height: '100%',
+              border: isActivelyDraggingOver ? '2px dashed #22c55e' : '1px dashed rgba(255, 255, 255, 0.12)',
+              borderRadius: '14px',
+              backgroundColor: isActivelyDraggingOver ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {isActivelyDraggingOver ? (
+              <>
+                <ArrowDownCircle size={32} color="#22c55e" />
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#22c55e' }}>
+                  Release to Drop on Shelf
                 </div>
-                <div style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.45)', marginTop: '2px' }}>
-                  Drag files to notch from Explorer, or click Add
+              </>
+            ) : (
+              <>
+                <FolderOpen size={28} color="rgba(255, 255, 255, 0.4)" />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.85)' }}>
+                    Drop Zone Ready
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.45)', marginTop: '2px' }}>
+                    Drag files to notch from Explorer, or click Add
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="items-grid"
+              </>
+            )}
+          </motion.div>
+        ) : (
+          /* Cards Grid: Always renders your items! */
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <div
               className="shelf-cards-scroll"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               style={{
                 display: 'flex',
                 gap: '10px',
@@ -485,9 +492,9 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                   whileHover={{ y: -3, scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   style={{
-                    width: '102px',
-                    minWidth: '102px',
-                    height: '126px',
+                    width: '104px',
+                    minWidth: '104px',
+                    height: '128px',
                     borderRadius: '12px',
                     backgroundColor: 'rgba(255, 255, 255, 0.06)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -502,7 +509,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                     transition: 'border-color 0.15s ease, background-color 0.15s ease',
                   }}
                 >
-                  {/* Remove Button (top right) */}
+                  {/* Remove Button */}
                   <motion.button
                     onClick={(e) => handleRemove(item.id, e)}
                     whileHover={{ scale: 1.15 }}
@@ -533,7 +540,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                   <div
                     style={{
                       width: '100%',
-                      height: '52px',
+                      height: '54px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -560,7 +567,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                     <div
                       style={{
                         fontSize: '11px',
-                        fontWeight: 600,
+                        fontWeight: 650,
                         color: '#ffffff',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -570,9 +577,13 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                     >
                       {item.name}
                     </div>
-                    {item.size > 0 && (
+                    {item.size > 0 ? (
                       <div style={{ fontSize: '9.5px', color: 'rgba(255, 255, 255, 0.45)', marginTop: '1px' }}>
                         {formatFileSize(item.size)}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '9.5px', color: '#22c55e', marginTop: '1px', fontWeight: 500 }}>
+                        Ready
                       </div>
                     )}
                   </div>
@@ -648,9 +659,33 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                   </div>
                 </motion.div>
               ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+
+            {/* Subtle Overlay only when dragging more files over existing items */}
+            {isHoveringDrop && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: '14px',
+                  border: '2px dashed #22c55e',
+                  backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                }}
+              >
+                <ArrowDownCircle size={24} color="#22c55e" />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#22c55e' }}>
+                  Drop to Add More Files
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bottom Hint Footer */}
@@ -667,7 +702,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           flexShrink: 0,
         }}
       >
-        <span>💡 Drag cards out to drop into Discord, browser, or folders</span>
+        <span>💡 Drag cards out to drop into Discord, browser, or folders • Scroll to exit</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <span style={{ width: '3.5px', height: '3.5px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />
           <span style={{ width: '12px', height: '3.5px', borderRadius: '2px', background: '#22c55e' }} />

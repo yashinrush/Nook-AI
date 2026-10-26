@@ -891,8 +891,12 @@ function App() {
       }
     };
 
-    const handleDrop = (e: DragEvent) => {
-      e.preventDefault();
+    const handleDrop = () => {
+      dragCounter = 0;
+      setIsDraggingOverNotch(false);
+    };
+
+    const handleDragEnd = () => {
       dragCounter = 0;
       setIsDraggingOverNotch(false);
     };
@@ -901,12 +905,14 @@ function App() {
     window.addEventListener('dragover', handleDragOver);
     window.addEventListener('dragleave', handleDragLeave);
     window.addEventListener('drop', handleDrop);
+    window.addEventListener('dragend', handleDragEnd);
 
     return () => {
       window.removeEventListener('dragenter', handleDragEnter);
       window.removeEventListener('dragover', handleDragOver);
       window.removeEventListener('dragleave', handleDragLeave);
       window.removeEventListener('drop', handleDrop);
+      window.removeEventListener('dragend', handleDragEnd);
     };
   }, []);
 
@@ -920,12 +926,21 @@ function App() {
 
   const handleWheel = (e: React.WheelEvent) => {
     const target = e.target as HTMLElement;
+
+    // Scrolling while in File Shelf or To-Do immediately exits back to status mode
+    if (nectarMode === 'shelf' || nectarMode === 'todo') {
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (Math.abs(delta) >= 10) {
+        setNectarMode('status');
+        return;
+      }
+    }
+
     if (
       target.closest('.calendar-grid') ||
       target.closest('.timer-column') ||
       target.closest('.cal-scroll') ||
-      target.closest('.nusa-todo-container') ||
-      target.closest('.nook-file-shelf-container') ||
+      target.closest('.todo-tasks-scroll') ||
       target.closest('.synced-lyrics-container')
     ) {
       return;
@@ -2445,6 +2460,7 @@ function App() {
                     <FileShelf
                       onBack={() => setNectarMode('status')}
                       isDraggingExternal={isDraggingOverNotch}
+                      onDropComplete={() => setIsDraggingOverNotch(false)}
                     />
                   </motion.div>
                 )}
