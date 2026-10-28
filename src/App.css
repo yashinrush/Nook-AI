@@ -1626,38 +1626,89 @@ img {
 .cc-pill-info {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     line-height: 1.15;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .cc-pill-title {
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 600;
-    color: var(--nectar-text, rgba(255, 255, 255, 0.9));
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .cc-pill-status {
     font-size: 7.5px;
-    color: var(--nectar-text-muted, rgba(255, 255, 255, 0.4));
+    color: rgba(255, 255, 255, 0.5);
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Active Monochrome pill states */
+/* Transparent Glass Active pill states (Wi-Fi, Bluetooth, Dock, Notch) */
 .cc-pill-tile.active {
-    background: var(--nectar-text, rgba(255, 255, 255, 0.95));
-    border-color: var(--nectar-text, rgba(255, 255, 255, 0.95));
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.24);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.cc-pill-tile.active:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.32);
 }
 
 .cc-pill-tile.active .cc-pill-title {
-    color: var(--nectar-bg-expanded, rgba(0, 0, 0, 0.9));
+    color: #ffffff;
 }
 
 .cc-pill-tile.active .cc-pill-status {
-    color: var(--nectar-bg-expanded, rgba(0, 0, 0, 0.5));
+    color: rgba(255, 255, 255, 0.72);
 }
 
 .cc-pill-tile.active .cc-pill-icon-wrapper {
-    background: var(--nectar-group-bg, rgba(0, 0, 0, 0.08));
-    color: var(--nectar-bg-expanded, #000);
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
+
+/* Transparent chevron button to open sub-drawers */
+.cc-pill-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.cc-pill-more:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+}
+
+.cc-pill-tile.active .cc-pill-more {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.cc-pill-tile.active .cc-pill-more:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
 }
 
 /* Circular Actions Row */

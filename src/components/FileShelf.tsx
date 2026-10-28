@@ -309,14 +309,14 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           {onBack && (
             <motion.button
               onClick={onBack}
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}
               style={{
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -337,8 +337,8 @@ export const FileShelf: React.FC<FileShelfProps> = ({
             </span>
             <span
               style={{
-                fontSize: '10.5px',
-                padding: '1px 6px',
+                fontSize: '10px',
+                padding: '2px 7px',
                 borderRadius: '999px',
                 backgroundColor: items.length > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.1)',
                 color: items.length > 0 ? '#4ade80' : 'rgba(255, 255, 255, 0.6)',
@@ -350,13 +350,11 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           </div>
         </div>
 
-        {/* Center Hint */}
-        <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 500 }}>
-          Scroll or click back to exit
-        </div>
-
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Right: Actions and Exit hint cleanly aligned */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.45)', fontWeight: 500 }}>
+            Scroll to exit
+          </span>
           <motion.button
             onClick={handleAddFiles}
             whileHover={{ scale: 1.05 }}
@@ -563,26 +561,58 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                   </div>
 
                   {/* Title & Size */}
-                  <div style={{ width: '100%', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: '100%',
+                      overflow: 'hidden',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginTop: '3px',
+                      marginBottom: '2px',
+                    }}
+                  >
                     <div
                       style={{
+                        width: '100%',
                         fontSize: '11px',
-                        fontWeight: 650,
+                        fontWeight: 600,
                         color: '#ffffff',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
+                        textAlign: 'center',
+                        lineHeight: '1.25',
                       }}
                       title={item.name}
                     >
                       {item.name}
                     </div>
                     {item.size > 0 ? (
-                      <div style={{ fontSize: '9.5px', color: 'rgba(255, 255, 255, 0.45)', marginTop: '1px' }}>
+                      <div
+                        style={{
+                          fontSize: '9.5px',
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          marginTop: '2px',
+                          lineHeight: '1.1',
+                          textAlign: 'center',
+                        }}
+                      >
                         {formatFileSize(item.size)}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '9.5px', color: '#22c55e', marginTop: '1px', fontWeight: 500 }}>
+                      <div
+                        style={{
+                          fontSize: '9.5px',
+                          color: '#4ade80',
+                          marginTop: '2px',
+                          fontWeight: 500,
+                          lineHeight: '1.1',
+                          textAlign: 'center',
+                        }}
+                      >
                         Ready
                       </div>
                     )}
@@ -695,15 +725,18 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          paddingTop: '4px',
+          paddingTop: '6px',
           fontSize: '10px',
-          color: 'rgba(255, 255, 255, 0.4)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          color: 'rgba(255, 255, 255, 0.45)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
           flexShrink: 0,
+          boxSizing: 'border-box',
         }}
       >
-        <span>💡 Drag cards out to drop into Discord, browser, or folders • Scroll to exit</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          💡 Drag cards out to drop into apps • Scroll to exit
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
           <span style={{ width: '3.5px', height: '3.5px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />
           <span style={{ width: '12px', height: '3.5px', borderRadius: '2px', background: '#22c55e' }} />
         </div>
