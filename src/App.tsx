@@ -930,20 +930,15 @@ function App() {
   const wheelAccumRef = useRef(0);
   const wheelIdleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isWheelCooldownRef = useRef(false);
-  const WHEEL_STEP_THRESHOLD = 50;
-  const WHEEL_IDLE_RESET_MS = 150;
+  const WHEEL_STEP_THRESHOLD = 36;
+  const WHEEL_IDLE_RESET_MS = 140;
+  const WHEEL_COOLDOWN_MS = 180;
 
   const handleWheel = (e: React.WheelEvent) => {
     const target = e.target as HTMLElement;
 
-    // Scrolling while in File Shelf or To-Do immediately exits back to status mode
-    if (nectarMode === 'shelf' || nectarMode === 'todo') {
-      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-      if (Math.abs(delta) >= 10) {
-        setNectarMode('status');
-        return;
-      }
-    }
+    // Ensure notch stays expanded while user is actively scrolling on it
+    if (!isHovered) setIsHovered(true);
 
     // Scrolling while lyrics are open exits lyrics mode back to player unless scrolling the lyrics list itself
     if (compactLyricsOpen) {
@@ -956,11 +951,50 @@ function App() {
       }
     }
 
+    // Scrolling inside Wi-Fi or Bluetooth subpanel returns to command-center
+    if (nectarMode === 'wifi' || nectarMode === 'bluetooth') {
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (Math.abs(delta) >= 12) {
+        setNectarMode('command-center');
+        return;
+      }
+    }
+
+    // Check if user is scrolling inside an element that actually has scrollable content
+    const todoScroll = target.closest('.todo-tasks-scroll') as HTMLElement | null;
+    if (todoScroll && todoScroll.scrollHeight > todoScroll.clientHeight + 4) {
+      const isDown = e.deltaY > 0;
+      const canScrollDown = todoScroll.scrollTop < todoScroll.scrollHeight - todoScroll.clientHeight - 2;
+      const canScrollUp = todoScroll.scrollTop > 2;
+      if ((isDown && canScrollDown) || (!isDown && canScrollUp)) {
+        return; // Allow internal task scrolling
+      }
+    }
+
+    const shelfScroll = target.closest('.shelf-cards-scroll') as HTMLElement | null;
+    if (shelfScroll && shelfScroll.scrollWidth > shelfScroll.clientWidth + 4) {
+      const isRight = e.deltaX > 0 || (e.shiftKey && e.deltaY > 0);
+      const isLeft = e.deltaX < 0 || (e.shiftKey && e.deltaY < 0);
+      const canScrollRight = shelfScroll.scrollLeft < shelfScroll.scrollWidth - shelfScroll.clientWidth - 2;
+      const canScrollLeft = shelfScroll.scrollLeft > 2;
+      if ((isRight && canScrollRight) || (isLeft && canScrollLeft)) {
+        return; // Allow horizontal cards scrolling
+      }
+    }
+
+    const calScroll = target.closest('.cal-scroll') as HTMLElement | null;
+    if (calScroll && calScroll.scrollHeight > calScroll.clientHeight + 4) {
+      const isDown = e.deltaY > 0;
+      const canScrollDown = calScroll.scrollTop < calScroll.scrollHeight - calScroll.clientHeight - 2;
+      const canScrollUp = calScroll.scrollTop > 2;
+      if ((isDown && canScrollDown) || (!isDown && canScrollUp)) {
+        return; // Allow calendar list scrolling
+      }
+    }
+
     if (
       target.closest('.calendar-grid') ||
       target.closest('.timer-column') ||
-      target.closest('.cal-scroll') ||
-      target.closest('.todo-tasks-scroll') ||
       target.closest('.synced-lyrics-container') ||
       target.closest('.qp') ||
       target.closest('.qp-list') ||
@@ -969,29 +1003,30 @@ function App() {
       return;
     }
 
-    if (!isHovered && !compactLyricsOpen) return;
     if (isWheelCooldownRef.current) return;
 
-    // Use absolute values to detect horizontal swipe gestures on trackpad
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (Math.abs(delta) < 2) return; // Ignore near-zero noise
+    // Use dominant axis for smooth detection on both vertical mouse wheels and trackpads
+    const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    if (Math.abs(delta) < 2) return; // Ignore near-zero sensor noise
 
     wheelAccumRef.current += delta;
     if (wheelIdleTimeoutRef.current) clearTimeout(wheelIdleTimeoutRef.current);
-    wheelIdleTimeoutRef.current = setTimeout(() => { wheelAccumRef.current = 0; }, WHEEL_IDLE_RESET_MS);
+    wheelIdleTimeoutRef.current = setTimeout(() => {
+      wheelAccumRef.current = 0;
+    }, WHEEL_IDLE_RESET_MS);
 
     if (Math.abs(wheelAccumRef.current) < WHEEL_STEP_THRESHOLD) return;
     const direction = wheelAccumRef.current > 0 ? 1 : -1;
     wheelAccumRef.current = 0;
 
-    // Cooldown prevents trackpad inertia from bouncing modes rapidly
+    // Quick cooldown prevents trackpad inertia from bouncing modes rapidly
     isWheelCooldownRef.current = true;
     setTimeout(() => {
       isWheelCooldownRef.current = false;
       wheelAccumRef.current = 0;
-    }, 260);
+    }, WHEEL_COOLDOWN_MS);
 
-    // Music shifts position based on playing state
+    // Full carousel loop: Command Center <-> Status <-> Music <-> To-Do <-> File Shelf <-> Calendar
     const musicBeforeStatus = isPlaying && mediaInfo.has_media && settingsMusicModeEnabled;
     const modes: ('command-center' | 'status' | 'music' | 'todo' | 'shelf' | 'calendar')[] = musicBeforeStatus
       ? ['command-center', 'music', 'status', 'todo', 'shelf', 'calendar']
@@ -1002,8 +1037,11 @@ function App() {
       return true;
     });
 
-    const currentIndex = (availableModes as string[]).indexOf(nectarMode);
-    if (currentIndex === -1) return;
+    let currentIndex = (availableModes as string[]).indexOf(nectarMode);
+    if (currentIndex === -1) {
+      currentIndex = availableModes.indexOf('command-center');
+      if (currentIndex === -1) currentIndex = 0;
+    }
 
     const nextIndex = (currentIndex + direction + availableModes.length) % availableModes.length;
     const nextMode = availableModes[nextIndex];
@@ -1759,8 +1797,8 @@ function App() {
           scaleY: 1,
           borderTopLeftRadius: isImpacted ? 0 : 18,
           borderTopRightRadius: isImpacted ? 0 : 18,
-          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth') ? 28 : 18,
-          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth') ? 28 : 18,
+          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'command-center') ? 28 : 18,
+          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'command-center') ? 28 : 18,
           filter: "blur(0px)",
           pointerEvents: 'auto'
         }}

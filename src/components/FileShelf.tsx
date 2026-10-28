@@ -103,13 +103,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
     } catch {}
   }, [items]);
 
-  // Handle wheel scrolling: when user scrolls anywhere on the shelf, naturally go back to status!
-  const handleWheel = (e: React.WheelEvent) => {
-    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-    if (Math.abs(delta) >= 15) {
-      onBack?.();
-    }
-  };
+
 
   const handleAddFiles = useCallback(async () => {
     try {
@@ -257,7 +251,6 @@ export const FileShelf: React.FC<FileShelfProps> = ({
       ref={dropRef}
       className={`nook-file-shelf-container ${className}`}
       onClick={(e) => e.stopPropagation()}
-      onWheel={handleWheel}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -353,7 +346,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
         {/* Right: Actions and Exit hint cleanly aligned */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.45)', fontWeight: 500 }}>
-            Scroll to exit
+            Scroll to switch
           </span>
           <motion.button
             onClick={handleAddFiles}
@@ -734,7 +727,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          💡 Drag cards out to drop into apps • Scroll to exit
+          💡 Drag cards out to drop into apps • Scroll to switch
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
           <span style={{ width: '3.5px', height: '3.5px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />
