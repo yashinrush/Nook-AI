@@ -239,7 +239,43 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
     setAiLoading(true);
     setAiResponse('');
 
-    // Check if local Ollama model is available
+    const defaultKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    const apiKey = localStorage.getItem('nook-gemini-api-key') || defaultKey;
+    const model = localStorage.getItem('nook-gemini-model') || 'gemini-3.5-flash';
+
+    // 1. Try Gemini API
+    if (apiKey) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: q }] }],
+            }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            setAiResponse(text.trim());
+            setAiLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Gemini query error:', err);
+      }
+    }
+
+    // 2. Check if local Ollama model is available
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 2000);
@@ -264,7 +300,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
       }
     } catch {}
 
-    // Fallback intelligent offline assistant synthesizer
+    // 3. Fallback intelligent offline assistant synthesizer
     setTimeout(() => {
       const lower = q.toLowerCase();
       let answer = '';
