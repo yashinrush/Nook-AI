@@ -107,6 +107,8 @@ pub struct BrightnessChangeEvent {
 pub struct WifiStatus {
     pub enabled: bool,
     pub connected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ssid: Option<String>,
 }
 
 #[derive(Clone, Serialize)]

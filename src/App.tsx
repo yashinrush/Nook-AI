@@ -247,6 +247,7 @@ function UpdateActivity() {
 interface WifiStatus {
   enabled: boolean;
   connected: boolean;
+  ssid?: string;
 }
 
 interface MediaInfo {
@@ -396,6 +397,7 @@ function App() {
   const wifiEnabled = wifiStatus?.enabled ?? false;
   const wifiConnected = wifiStatus?.connected ?? false;
   const [bluetoothEnabled, setBluetoothEnabled] = useState(true);
+  const [connectedBtDevice, setConnectedBtDevice] = useState<string | null>(null);
   const [batterySaverEnabled, setBatterySaverEnabled] = useState(false);
   const [currentBrightness, setCurrentBrightness] = useState(50);
 
@@ -959,7 +961,10 @@ function App() {
       target.closest('.timer-column') ||
       target.closest('.cal-scroll') ||
       target.closest('.todo-tasks-scroll') ||
-      target.closest('.synced-lyrics-container')
+      target.closest('.synced-lyrics-container') ||
+      target.closest('.qp') ||
+      target.closest('.qp-list') ||
+      target.closest('.qp-body')
     ) {
       return;
     }
@@ -1246,7 +1251,7 @@ function App() {
 
   // Load bluetooth/volume/brightness state on mount
   useEffect(() => {
-    invoke<boolean>("get_bluetooth_state").then(setBluetoothEnabled).catch(() => { });
+    void refreshBluetoothStatus();
     invoke<boolean>("get_battery_saver_state").then(setBatterySaverEnabled).catch(() => { });
     invoke<boolean>("has_battery").then(setHasBattery).catch(() => { });
     invoke<{ volume: number; is_muted: boolean }>("get_volume_state")
@@ -1412,17 +1417,45 @@ function App() {
     }
   }, [wifiStatus, refreshWifiStatus]);
 
+  const refreshBluetoothStatus = useCallback(async () => {
+    try {
+      const state = await invoke<boolean>("get_bluetooth_state");
+      setBluetoothEnabled(state);
+      if (state) {
+        const devices = await invoke<Array<{ name: string; connected: boolean }>>("bluetooth_list_devices");
+        const active = devices.find(d => d.connected);
+        setConnectedBtDevice(active ? active.name : null);
+      } else {
+        setConnectedBtDevice(null);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshBluetoothStatus();
+    const unlisten = listen("bluetooth-changed", () => {
+      void refreshBluetoothStatus();
+    });
+    return () => {
+      unlisten.then(f => f());
+    };
+  }, [refreshBluetoothStatus]);
+
   // Bluetooth toggle
   const toggleBluetooth = useCallback(async () => {
     const newState = !bluetoothEnabled;
     setBluetoothEnabled(newState);
     try {
       await invoke("set_bluetooth_state", { enabled: newState });
+      setTimeout(() => void refreshBluetoothStatus(), 600);
+      setTimeout(() => void refreshBluetoothStatus(), 2000);
     } catch (e) {
       setBluetoothEnabled(!newState);
       console.error("Failed to toggle Bluetooth:", e);
     }
-  }, [bluetoothEnabled]);
+  }, [bluetoothEnabled, refreshBluetoothStatus]);
 
   // Battery Saver - opens settings (no public API to toggle without admin)
   const openBatterySaverSettings = useCallback(async () => {
@@ -1662,16 +1695,20 @@ function App() {
     }
   }, [isNotchHovered, mediaInfo.has_media, isPlaying, settingsMusicCompactNotch]);
 
-  // Pressing Escape exits lyrics view
+  // Pressing Escape exits lyrics view or quick panels
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && compactLyricsOpen) {
-        handleCompactLyricsChange(false);
+      if (e.key === 'Escape') {
+        if (compactLyricsOpen) {
+          handleCompactLyricsChange(false);
+        } else if (nectarMode === 'wifi' || nectarMode === 'bluetooth') {
+          setNectarMode('command-center');
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [compactLyricsOpen, handleCompactLyricsChange]);
+  }, [compactLyricsOpen, nectarMode, handleCompactLyricsChange]);
 
   const activeMediaInfo: MediaInfo = (mediaInfo.has_media && mediaInfo.title) ? mediaInfo : {
     title: mediaInfo.title || "Paper Sky",
@@ -2246,7 +2283,7 @@ function App() {
                         </div>
                         <div className="cc-pill-info">
                           <span className="cc-pill-title">Wi-Fi</span>
-                          <span className="cc-pill-status">{wifiStatus === null ? '…' : !wifiEnabled ? 'Off' : wifiConnected ? 'Connected' : 'Not connected'}</span>
+                          <span className="cc-pill-status">{wifiStatus === null ? '…' : !wifiEnabled ? 'Off' : wifiConnected ? (wifiStatus.ssid || 'Connected') : 'Not connected'}</span>
                         </div>
                         <button
                           className="cc-pill-more"
@@ -2286,7 +2323,7 @@ function App() {
                         </div>
                         <div className="cc-pill-info">
                           <span className="cc-pill-title">Bluetooth</span>
-                          <span className="cc-pill-status">{bluetoothEnabled ? 'On' : 'Off'}</span>
+                          <span className="cc-pill-status">{!bluetoothEnabled ? 'Off' : (connectedBtDevice || 'On')}</span>
                         </div>
                         <button
                           className="cc-pill-more"

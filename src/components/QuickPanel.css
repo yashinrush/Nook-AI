@@ -1,7 +1,14 @@
-/* Shared layout for the notch's Wi-Fi and Bluetooth views, opened from the
-   controls panel's tiles. Sits below the notch's 36px top strip, like the
-   controls panel itself. */
-.qp {
+:root {
+	--bloom-text: var(--nectar-text, #ffffff);
+	--bloom-text-muted: rgba(255, 255, 255, 0.6);
+	--bloom-group-bg: rgba(255, 255, 255, 0.08);
+	--bloom-border: rgba(255, 255, 255, 0.12);
+	--bloom-scrollbar-thumb: rgba(255, 255, 255, 0.18);
+	--bloom-bg-expanded: var(--nectar-bg-expanded, #000000);
+}
+
+.wifi-drawer-expanded,
+.bluetooth-drawer-expanded {
 	position: absolute;
 	top: 36px;
 	left: 0;
@@ -9,7 +16,19 @@
 	height: calc(100% - 36px);
 	box-sizing: border-box;
 	z-index: 2;
-	padding: 4px 12px 8px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+/* Shared layout for the notch's Wi-Fi and Bluetooth views, opened from the
+   controls panel's tiles. Sits below the notch's 36px top strip, like the
+   controls panel itself. */
+.qp {
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	z-index: 2;
+	padding: 4px 14px 8px;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;

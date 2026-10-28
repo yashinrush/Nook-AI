@@ -2902,6 +2902,7 @@ fn set_radio_state_sync(kind: windows::Devices::Radios::RadioKind, enabled: bool
             None, windows::Win32::System::Com::COINIT_MULTITHREADED,
         );
     }
+    let _ = Radio::RequestAccessAsync().and_then(|op| op.get());
     let radios = Radio::GetRadiosAsync()
         .and_then(|op| op.get())
         .map_err(|e| e.to_string())?;
@@ -2909,7 +2910,9 @@ fn set_radio_state_sync(kind: windows::Devices::Radios::RadioKind, enabled: bool
         if let Ok(radio) = radios.GetAt(i) {
             if radio.Kind().ok() == Some(kind) {
                 let target = if enabled { RadioState::On } else { RadioState::Off };
-                let _ = radio.SetStateAsync(target).and_then(|op| op.get());
+                if let Ok(op) = radio.SetStateAsync(target) {
+                    let _ = op.get();
+                }
                 return Ok(());
             }
         }
@@ -3028,7 +3031,12 @@ pub async fn get_wifi_status() -> Result<WifiStatus, String> {
     tauri::async_runtime::spawn_blocking(|| -> Result<WifiStatus, String> {
         let enabled = get_radio_state_sync(windows::Devices::Radios::RadioKind::WiFi)?;
         let connected = enabled && is_wlan_connected_sync();
-        Ok(WifiStatus { enabled, connected })
+        let ssid = if connected {
+            crate::wifi::connected_ssid()
+        } else {
+            None
+        };
+        Ok(WifiStatus { enabled, connected, ssid })
     })
     .await
     .map_err(|e| e.to_string())?
