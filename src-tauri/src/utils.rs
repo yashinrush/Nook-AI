@@ -888,6 +888,122 @@ unsafe fn wic_bitmap_to_base64(factory: &IWICImagingFactory, bitmap: &windows::W
     Some(format!("data:image/png;base64,{}", base64_str))
 }
 
+
+pub fn read_settings_file(
+    path: &std::path::Path,
+) -> Result<std::collections::HashMap<String, serde_json::Value>, String> {
+    match std::fs::read_to_string(path) {
+        Ok(content) => serde_json::from_str(content.trim_start_matches('\u{feff}'))
+            .map_err(|e| format!("Invalid settings file: {e}")),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Default::default()),
+        Err(e) => Err(format!("Could not read settings file: {e}")),
+    }
+}
+
+pub fn atomic_write_file(path: &std::path::Path, content: &[u8]) -> Result<(), String> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
+    let temp = path.with_file_name(format!(
+        "{}.tmp-{}-{}",
+        path.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("nook"),
+        std::process::id(),
+        NEXT_TEMP.fetch_add(1, Ordering::Relaxed)
+    ));
+    if let Err(e) = std::fs::write(&temp, content) {
+        let _ = std::fs::remove_file(&temp);
+        return Err(format!("Could not write {}: {e}", temp.display()));
+    }
+    let mut replaced = std::fs::rename(&temp, path);
+    for delay_ms in [25, 50, 100, 200] {
+        if !replaced
+            .as_ref()
+            .is_err_and(|e| matches!(e.raw_os_error(), Some(5 | 32 | 33)))
+        {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        replaced = std::fs::rename(&temp, path);
+    }
+    if let Err(e) = replaced {
+        let _ = std::fs::remove_file(&temp);
+        return Err(format!("Could not replace {}: {e}", path.display()));
+    }
+    Ok(())
+}
+
+pub fn write_settings_file(
+    path: &std::path::Path,
+    settings: &std::collections::HashMap<String, serde_json::Value>,
+) -> Result<(), String> {
+    let content = serde_json::to_vec(settings).map_err(|e| e.to_string())?;
+    atomic_write_file(path, &content)
+}
+
+pub fn save_setting_file(
+    path: &std::path::Path,
+    key: String,
+    value: serde_json::Value,
+) -> Result<std::collections::HashMap<String, serde_json::Value>, String> {
+    let _guard = crate::state::SETTINGS_FILE_LOCK
+        .lock()
+        .map_err(|e| e.to_string())?;
+    let mut settings = read_settings_file(path)?;
+    settings.insert(key, value);
+    write_settings_file(path, &settings)?;
+    replace_settings_cache(settings.clone());
+    Ok(settings)
+}
+
+pub fn get_bloom_scale(_app: &tauri::AppHandle) -> f64 {
+    get_setting_str(_app, "bloom-scale")
+        .or_else(|| get_setting_str(_app, "nectar-scale"))
+        .and_then(|s| s.parse::<f64>().ok())
+        .unwrap_or(1.0)
+}
+
+fn dock_setting_enabled(value: Option<&serde_json::Value>) -> bool {
+    value.is_none_or(|value| value.as_str() == Some("true"))
+}
+
+pub fn dock_enabled() -> bool {
+    crate::state::SETTINGS_CACHE.get().is_none_or(|cache| {
+        cache
+            .lock()
+            .map(|settings| dock_setting_enabled(settings.get("bloom-dock-enabled").or_else(|| settings.get("nook-dock-enabled"))))
+            .unwrap_or(false)
+    })
+}
+
+pub fn set_click_through(hwnd: HWND, ignore: bool) -> bool {
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE,
+    };
+    unsafe {
+        let current = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32;
+        let wanted = click_through_style(current, ignore);
+        if wanted == current {
+            return false;
+        }
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, wanted as isize);
+        true
+    }
+}
+
+fn click_through_style(style: u32, ignore: bool) -> u32 {
+    use windows::Win32::UI::WindowsAndMessaging::{WS_EX_LAYERED, WS_EX_TRANSPARENT};
+    let layered = style | WS_EX_LAYERED.0;
+    if ignore {
+        layered | WS_EX_TRANSPARENT.0
+    } else {
+        layered & !WS_EX_TRANSPARENT.0
+    }
+}
+
+
+
+
 #[cfg(test)]
 mod tests {
     use super::expand_env_vars;

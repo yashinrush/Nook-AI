@@ -8,6 +8,14 @@ import { useSettingsSync } from "../hooks/useSettingsSync";
 import { hexToHsl } from "../theme";
 import type { WidgetConfig, MonitorInfo, MonitorMode } from "./types";
 
+import {
+  addCustomFolder,
+  removeCustomFolder,
+  toggleEnabledFolder,
+  toggleHiddenDrive,
+  DEFAULT_ENABLED_FOLDERS,
+} from "../dockExtras";
+
 function saveSetting(key: string, value: string) {
   localStorage.setItem(key, value);
   invoke("save_setting", { key, value }).catch(console.error);
@@ -15,6 +23,12 @@ function saveSetting(key: string, value: string) {
 
 function readBool(val: string | null): boolean {
   return val === "true";
+}
+
+export type NotchPanelChoice = "calendar" | "command-center" | "devices";
+
+function asPanelChoice(val: unknown): NotchPanelChoice {
+  return val === "command-center" || val === "devices" ? val : "calendar";
 }
 
 export function useSettings() {
@@ -64,6 +78,47 @@ export function useSettings() {
   const [dockPreviewEnabled, setDockPreviewEnabled] = useState(true);
   const [dockSearchEnabled, setDockSearchEnabled] = useState(true);
   const [dockCalendarEnabled, setDockCalendarEnabled] = useState(true);
+  const [controlsPanelEnabled, setControlsPanelEnabled] = useState(true);
+  const [devicesPanelEnabled, setDevicesPanelEnabled] = useState(false);
+  const [notchRememberPanel, setNotchRememberPanel] = useState(
+    () => (localStorage.getItem("nook-notch-remember-panel") ?? localStorage.getItem("bloom-notch-remember-panel")) !== "false"
+  );
+  const [notchDefaultPanel, setNotchDefaultPanel] = useState<NotchPanelChoice>(() =>
+    asPanelChoice(localStorage.getItem("nook-notch-default-panel") ?? localStorage.getItem("bloom-notch-default-panel"))
+  );
+  const [notchEdgeDelay, setNotchEdgeDelay] = useState(
+    () => parseInt(localStorage.getItem("nook-notch-edge-delay") ?? localStorage.getItem("bloom-notch-edge-delay") ?? "0") || 0
+  );
+  const [dockEdgeDelay, setDockEdgeDelay] = useState(
+    () => parseInt(localStorage.getItem("nook-dock-edge-delay") ?? localStorage.getItem("bloom-dock-edge-delay") ?? "0") || 0
+  );
+  const [shelfPersist, setShelfPersist] = useState(
+    () => (localStorage.getItem("nook-shelf-persist") ?? localStorage.getItem("bloom-shelf-persist")) === "true"
+  );
+  const [dockSeparatorEnabled, setDockSeparatorEnabled] = useState(
+    () => (localStorage.getItem("nook-dock-separator-enabled") ?? localStorage.getItem("bloom-dock-separator-enabled")) !== "false"
+  );
+  const [dockTaskView, setDockTaskView] = useState(
+    () => (localStorage.getItem("nook-dock-task-view") ?? localStorage.getItem("bloom-dock-task-view")) === "true"
+  );
+  const [dockExtrasPosition, setDockExtrasPosition] = useState(
+    () => localStorage.getItem("nook-dock-extras-position") ?? localStorage.getItem("bloom-dock-extras-position") ?? "start"
+  );
+  const [dockExtrasDrives, setDockExtrasDrives] = useState(
+    () => (localStorage.getItem("nook-dock-extras-drives") ?? localStorage.getItem("bloom-dock-extras-drives")) === "true"
+  );
+  const [dockExtrasHiddenDrives, setDockExtrasHiddenDrives] = useState(
+    () => localStorage.getItem("nook-dock-extras-hidden-drives") ?? localStorage.getItem("bloom-dock-extras-hidden-drives") ?? ""
+  );
+  const [dockExtrasRecycleBin, setDockExtrasRecycleBin] = useState(
+    () => (localStorage.getItem("nook-dock-extras-recycle-bin") ?? localStorage.getItem("bloom-dock-extras-recycle-bin")) === "true"
+  );
+  const [dockExtrasFolders, setDockExtrasFolders] = useState<string | null>(
+    () => localStorage.getItem("nook-dock-extras-folders") ?? localStorage.getItem("bloom-dock-extras-folders") ?? DEFAULT_ENABLED_FOLDERS
+  );
+  const [dockExtrasCustomFolders, setDockExtrasCustomFolders] = useState<string | null>(
+    () => localStorage.getItem("nook-dock-extras-custom-folders") ?? localStorage.getItem("bloom-dock-extras-custom-folders")
+  );
   const [dockIconOnly, setDockIconOnly] = useState(
     () => localStorage.getItem("nectar-dock-icon-only") === "true"
   );
@@ -580,6 +635,110 @@ export function useSettings() {
     saveSetting("nectar-auto-update", String(next));
   };
 
+  const toggleControlsPanel = () => {
+    const next = !controlsPanelEnabled;
+    setControlsPanelEnabled(next);
+    saveSetting("bloom-notch-command-center-enabled", String(next));
+  };
+
+  const toggleDevicesPanel = () => {
+    const next = !devicesPanelEnabled;
+    setDevicesPanelEnabled(next);
+    saveSetting("bloom-notch-devices-enabled", String(next));
+  };
+
+  const toggleNotchRememberPanel = () => {
+    const next = !notchRememberPanel;
+    setNotchRememberPanel(next);
+    saveSetting("bloom-notch-remember-panel", String(next));
+  };
+
+  const changeNotchDefaultPanel = (panel: NotchPanelChoice) => {
+    setNotchDefaultPanel(panel);
+    saveSetting("bloom-notch-default-panel", panel);
+  };
+
+  const handleNotchEdgeDelayChange = (val: number) => {
+    setNotchEdgeDelay(val);
+    saveSetting("bloom-notch-edge-delay", val.toString());
+  };
+
+  const handleDockEdgeDelayChange = (val: number) => {
+    setDockEdgeDelay(val);
+    saveSetting("bloom-dock-edge-delay", val.toString());
+  };
+
+  const toggleShelfPersist = () => {
+    const next = !shelfPersist;
+    setShelfPersist(next);
+    saveSetting("bloom-shelf-persist", String(next));
+  };
+
+  const toggleDockSeparator = () => {
+    const next = !dockSeparatorEnabled;
+    setDockSeparatorEnabled(next);
+    saveSetting("bloom-dock-separator-enabled", String(next));
+  };
+
+  const toggleDockTaskView = () => {
+    const next = !dockTaskView;
+    setDockTaskView(next);
+    saveSetting("bloom-dock-task-view", String(next));
+  };
+
+  const handleDockExtrasPositionChange = (position: string) => {
+    setDockExtrasPosition(position);
+    saveSetting("bloom-dock-extras-position", position);
+  };
+
+  const toggleDockExtrasDrives = () => {
+    const next = !dockExtrasDrives;
+    setDockExtrasDrives(next);
+    saveSetting("bloom-dock-extras-drives", String(next));
+  };
+
+  const toggleDockExtrasDrive = (letter: string) => {
+    const next = toggleHiddenDrive(dockExtrasHiddenDrives, letter);
+    setDockExtrasHiddenDrives(next);
+    saveSetting("bloom-dock-extras-hidden-drives", next);
+  };
+
+  const toggleDockExtrasRecycleBin = () => {
+    const next = !dockExtrasRecycleBin;
+    setDockExtrasRecycleBin(next);
+    saveSetting("bloom-dock-extras-recycle-bin", String(next));
+  };
+
+  const toggleDockExtraFolder = (id: string) => {
+    const next = toggleEnabledFolder(dockExtrasFolders, id);
+    setDockExtrasFolders(next);
+    saveSetting("bloom-dock-extras-folders", next);
+  };
+
+  const handleAddDockExtraFolder = async () => {
+    try {
+      const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
+      const selected = await openDialog({
+        title: "Add a folder to the dock",
+        directory: true,
+        multiple: false,
+      });
+      if (typeof selected === "string") {
+        const next = addCustomFolder(dockExtrasCustomFolders, selected);
+        setDockExtrasCustomFolders(next);
+        saveSetting("bloom-dock-extras-custom-folders", next);
+      }
+    } catch (e) {
+      console.error("Folder picker failed:", e);
+    }
+  };
+
+  const handleRemoveDockExtraFolder = (path: string) => {
+    const next = removeCustomFolder(dockExtrasCustomFolders, path);
+    setDockExtrasCustomFolders(next);
+    saveSetting("bloom-dock-extras-custom-folders", next);
+  };
+
   // ── Value setters ──
   const setDockModeValue = (newMode: string) => {
     setDockMode(newMode);
@@ -857,6 +1016,18 @@ export function useSettings() {
     setNotchModeValue,
     calendarEnabled,
     toggleCalendar,
+    controlsPanelEnabled,
+    toggleControlsPanel,
+    devicesPanelEnabled,
+    toggleDevicesPanel,
+    notchRememberPanel,
+    toggleNotchRememberPanel,
+    notchDefaultPanel,
+    changeNotchDefaultPanel,
+    notchEdgeDelay,
+    handleNotchEdgeDelayChange,
+    shelfPersist,
+    toggleShelfPersist,
     timerEnabled,
     toggleTimerEnabled,
     timerSoundEnabled,
@@ -913,6 +1084,25 @@ export function useSettings() {
     toggleDockWinNumber,
     dockMixedReorder,
     toggleDockMixedReorder,
+    dockSeparatorEnabled,
+    toggleDockSeparator,
+    dockTaskView,
+    toggleDockTaskView,
+    dockEdgeDelay,
+    handleDockEdgeDelayChange,
+    dockExtrasPosition,
+    handleDockExtrasPositionChange,
+    dockExtrasDrives,
+    toggleDockExtrasDrives,
+    dockExtrasHiddenDrives,
+    toggleDockExtrasDrive,
+    dockExtrasRecycleBin,
+    toggleDockExtrasRecycleBin,
+    dockExtrasFolders,
+    toggleDockExtraFolder,
+    dockExtrasCustomFolders,
+    handleAddDockExtraFolder,
+    handleRemoveDockExtraFolder,
 
     monitors,
     dockMonitorMode,

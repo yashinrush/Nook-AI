@@ -1,4 +1,4 @@
-import { StrictMode, useState, useEffect } from "react";
+import { StrictMode, useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Effect, EffectState } from "@tauri-apps/api/window";
@@ -17,6 +17,7 @@ import {
   AboutTab,
 } from "./settings/index";
 import type { SettingsTab } from "./settings/index";
+import { FeaturePreview } from "./settings/FeaturePreview";
 import { initTheme } from "./theme";
 import "./Settings.css";
 
@@ -31,8 +32,20 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
   { id: "about", label: "About", icon: Info },
 ];
 
+const TAB_COPY: Record<string, string> = {
+  general: "The essentials for how Nook starts and runs.",
+  appearance: "Make every surface feel at home on your desktop.",
+  notch: "Choose what appears at the top of your screen.",
+  dock: "Shape the taskbar replacement around your workflow.",
+  overlays: "Keep quick controls visible only when you need them.",
+  about: "Version, updates and your settings data.",
+  "calendar-sync": "Configure CalDAV and ICS calendar synchronization.",
+};
+
 function SettingsApp() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [previewFocus, setPreviewFocus] = useState("");
+  const contentRef = useRef<HTMLDivElement>(null);
   const settings = useSettings();
 
   useEffect(() => {
@@ -61,10 +74,14 @@ function SettingsApp() {
 
   useEffect(() => {
     invoke("resize_settings_window", {
-      width: 620 * settings.scale,
-      height: 480 * settings.scale,
+      width: 740 * settings.scale,
+      height: 560 * settings.scale,
     }).catch(console.error);
   }, [settings.scale]);
+
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [activeTab]);
 
   return (
     <div className="settings-container" style={{ zoom: settings.scale }}>
@@ -77,6 +94,7 @@ function SettingsApp() {
 
       <div className="settings-body">
         <div className="settings-sidebar">
+          <div className="settings-sidebar-intro"><strong>Nook</strong><span>Make it yours</span></div>
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -91,7 +109,40 @@ function SettingsApp() {
           ))}
         </div>
 
-        <div className="settings-content">
+        <div
+          className="settings-content"
+          ref={contentRef}
+          onChangeCapture={(event) => {
+            const target = event.target as HTMLElement;
+            const row = target.closest(".setting-item");
+            let label = row?.querySelector(".setting-label")?.textContent;
+            if (!label && target.closest(".settings-disclosure-standalone")) label = "Status Widgets";
+            if (activeTab === "overlays" && label === "Show on Edge Hover") {
+              const edgeRows = Array.from(contentRef.current?.querySelectorAll(".setting-item") ?? []).filter(
+                (item) => item.querySelector(".setting-label")?.textContent === label
+              );
+              label = row === edgeRows[edgeRows.length - 1] && edgeRows.length > 1 ? "Brightness Edge Hover" : "Volume Edge Hover";
+            }
+            if (label) setPreviewFocus(activeTab + ":" + label + ":" + Date.now());
+          }}
+          onClickCapture={(event) => {
+            const label = (event.target as HTMLElement).closest(".setting-item")?.querySelector(".setting-label")?.textContent;
+            if (label === "Start Menu Icon" || label === "Weather Status") {
+              setPreviewFocus(activeTab + ":" + label + ":" + Date.now());
+            }
+          }}
+        >
+          <div className="settings-page-heading">
+            <h1>{TABS.find((tab) => tab.id === activeTab)?.label || "Calendar Sync"}</h1>
+            <p>{TAB_COPY[activeTab] || ""}</p>
+          </div>
+          {activeTab !== "calendar-sync" && (
+            <FeaturePreview
+              tab={activeTab}
+              settings={settings}
+              focus={previewFocus}
+            />
+          )}
           {activeTab === "general" && (
             <GeneralTab
               autostart={settings.autostart}

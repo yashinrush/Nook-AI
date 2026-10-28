@@ -16,6 +16,16 @@ mod caldav;
 mod calendar_sync;
 mod ics;
 mod active_look;
+mod battery;
+mod bluetooth;
+mod buds;
+mod dock_extras;
+mod jack;
+mod shelf;
+mod shelf_preview;
+mod usb;
+mod wifi;
+mod window_region;
 
 use tauri::Manager;
 use windows::Win32::System::Console::SetConsoleCtrlHandler;
@@ -80,6 +90,8 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_drag::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -194,7 +206,37 @@ fn main() {
             calendar_sync::caldav_get_cache,
             ics::ics_add_link,
             ics::ics_remove_link,
-            ics::ics_detect
+            ics::ics_detect,
+            battery::get_battery_details,
+            dock_extras::get_dock_extras,
+            dock_extras::open_dock_extra,
+            dock_extras::eject_dock_extra,
+            dock_extras::get_dock_drives,
+            wifi::wifi_list_networks,
+            wifi::wifi_scan,
+            wifi::wifi_connect,
+            wifi::wifi_disconnect,
+            wifi::wifi_forget,
+            wifi::wifi_open_settings,
+            bluetooth::bluetooth_list_devices,
+            bluetooth::bluetooth_set_connected,
+            bluetooth::bluetooth_discovery,
+            bluetooth::bluetooth_pair,
+            bluetooth::bluetooth_pairing_respond,
+            bluetooth::bluetooth_unpair,
+            bluetooth::bluetooth_refresh_buds,
+            usb::usb_list_devices,
+            jack::jack_list_devices,
+            window_region::set_window_region,
+            setup_shelf_drop,
+            shelf_thumbnail,
+            shelf_drag_icon,
+            shelf_prune,
+            shelf_open,
+            set_notch_visible,
+            settings_file_readable,
+            quit_bloom,
+            restart_bloom
         ])
         .setup(|app| {
             init_taskbar_marker(app.handle());
@@ -283,6 +325,10 @@ fn main() {
             start_window_style_guard(app.handle().clone());
             setup_audio_visualization(app.handle().clone());
             setup_settings_watcher(app.handle().clone());
+            wifi::setup_wifi_notifications(app.handle().clone());
+            bluetooth::setup_bluetooth_notifications(app.handle().clone());
+            usb::setup_usb_notifications(app.handle().clone());
+            jack::setup_jack_notifications(app.handle().clone());
 
             // Listen for second-instance signal to open settings
             if let Some(&h_event) = SINGLE_INSTANCE_EVENT_HANDLE.get() {

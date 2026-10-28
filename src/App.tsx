@@ -20,6 +20,8 @@ import { NotchEyes } from "./components/NotchEyes";
 import { SyncedLyrics } from "./components/SyncedLyrics";
 import { TodoList } from "./components/TodoList";
 import { FileShelf } from "./components/FileShelf";
+import { WifiPanel } from "./components/WifiPanel";
+import { BluetoothPanel } from "./components/BluetoothPanel";
 import {
   Cpu,
   MemoryStick,
@@ -29,6 +31,7 @@ import {
   CheckSquare,
   Eye,
   FolderDown,
+  ChevronRight,
 } from "lucide-react";
 
 // Timer chime, synthesized with Web Audio so there's no asset. The context is made on the
@@ -857,7 +860,11 @@ function App() {
     invoke("change_notch_mode", { mode: notchMode });
   }, [notchMode, windowLabel]);
 
-  const [nectarMode, setNectarMode] = useState<'music' | 'calendar' | 'command-center' | 'status' | 'todo' | 'shelf'>('status');
+  const [nectarMode, setNectarMode] = useState<'music' | 'calendar' | 'command-center' | 'status' | 'todo' | 'shelf' | 'wifi' | 'bluetooth'>('status');
+  const notchPinnedRef = useRef(false);
+  const setNotchPinned = useCallback((pinned: boolean) => {
+    notchPinnedRef.current = pinned;
+  }, []);
   const [isDraggingOverNotch, setIsDraggingOverNotch] = useState(false);
   const caldav = useCaldav();
 
@@ -990,7 +997,7 @@ function App() {
       return true;
     });
 
-    const currentIndex = availableModes.indexOf(nectarMode);
+    const currentIndex = (availableModes as string[]).indexOf(nectarMode);
     if (currentIndex === -1) return;
 
     const nextIndex = (currentIndex + direction + availableModes.length) % availableModes.length;
@@ -1388,14 +1395,7 @@ function App() {
   }, [sendVolume]);
 
 
-  // Open WiFi settings
-  const openWifiSettings = useCallback(async () => {
-    try {
-      await invoke("open_wifi_settings");
-    } catch (e) {
-      console.error("Failed to open WiFi settings:", e);
-    }
-  }, []);
+
 
   // WiFi toggle
   const toggleWifi = useCallback(async () => {
@@ -1455,8 +1455,8 @@ function App() {
   const handleWifiRightClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    openWifiSettings();
-  }, [openWifiSettings]);
+    setNectarMode("wifi");
+  }, []);
 
   const toggleDockModeSetting = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1486,7 +1486,7 @@ function App() {
   const handleBluetoothRightClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    invoke("open_bluetooth_settings");
+    setNectarMode("bluetooth");
   }, []);
 
 
@@ -1601,7 +1601,7 @@ function App() {
       const totalWidgets = statusWidgets.left.length + statusWidgets.right.length;
       return Math.min(200 + totalWidgets * 65, 460);
     }
-    if (nectarMode === 'todo' || nectarMode === 'shelf') return 480;
+    if (nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth') return 480;
     if (isMusicMode && (isHovered || compactLyricsOpen)) {
       return mediaLayout === 'compact' ? 300 : 340;
     }
@@ -1631,6 +1631,7 @@ function App() {
     if (nectarMode === 'status') return 36;
     if (nectarMode === 'todo') return 310;
     if (nectarMode === 'shelf') return 255;
+    if (nectarMode === 'wifi' || nectarMode === 'bluetooth') return 340;
     if (isMusicMode && isHovered) {
       const hasProgressBar = (mediaInfo.duration_ms ?? 0) > 0;
       let h = mediaLayout === 'compact' ? (hasProgressBar ? 132 : 116) : 120;
@@ -1721,8 +1722,8 @@ function App() {
           scaleY: 1,
           borderTopLeftRadius: isImpacted ? 0 : 18,
           borderTopRightRadius: isImpacted ? 0 : 18,
-          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf') ? 28 : 18,
-          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf') ? 28 : 18,
+          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth') ? 28 : 18,
+          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth') ? 28 : 18,
           filter: "blur(0px)",
           pointerEvents: 'auto'
         }}
@@ -1731,12 +1732,12 @@ function App() {
         }}
         onHoverStart={() => {
           setIsHovered(true);
-          if (!compactLyricsOpen && nectarMode !== 'todo' && nectarMode !== 'shelf' && nectarMode !== 'calendar' && nectarMode !== 'command-center') {
+          if (!compactLyricsOpen && nectarMode !== 'todo' && nectarMode !== 'shelf' && nectarMode !== 'calendar' && nectarMode !== 'command-center' && nectarMode !== 'wifi' && nectarMode !== 'bluetooth') {
             setNectarMode(mediaInfo.has_media && isPlaying ? 'music' : 'status');
           }
         }}
         onHoverEnd={() => {
-          if (compactLyricsOpen || nectarMode === 'todo' || nectarMode === 'shelf') return;
+          if (compactLyricsOpen || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || notchPinnedRef.current) return;
           setIsHovered(false);
           const targetMode = mediaInfo.has_media && isPlaying && settingsMusicCompactNotch ? 'music' : 'status';
           if (nectarMode === 'music') {
@@ -2247,6 +2248,17 @@ function App() {
                           <span className="cc-pill-title">Wi-Fi</span>
                           <span className="cc-pill-status">{wifiStatus === null ? '…' : !wifiEnabled ? 'Off' : wifiConnected ? 'Connected' : 'Not connected'}</span>
                         </div>
+                        <button
+                          className="cc-pill-more"
+                          aria-label="Wi-Fi networks"
+                          title="Wi-Fi networks"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNectarMode("wifi");
+                          }}
+                        >
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
 
                       {/* Dock Mode Pill */}
@@ -2276,6 +2288,17 @@ function App() {
                           <span className="cc-pill-title">Bluetooth</span>
                           <span className="cc-pill-status">{bluetoothEnabled ? 'On' : 'Off'}</span>
                         </div>
+                        <button
+                          className="cc-pill-more"
+                          aria-label="Bluetooth devices"
+                          title="Bluetooth devices"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNectarMode("bluetooth");
+                          }}
+                        >
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
 
                       {/* Notch Mode Pill */}
@@ -2480,6 +2503,50 @@ function App() {
                       onBack={() => setNectarMode('status')}
                       isDraggingExternal={isDraggingOverNotch}
                       onDropComplete={() => setIsDraggingOverNotch(false)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Wi-Fi Networks Panel */}
+              <AnimatePresence>
+                {nectarMode === 'wifi' && (
+                  <motion.div
+                    className="wifi-drawer-expanded"
+                    onClick={(e) => e.stopPropagation()}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <WifiPanel
+                      enabled={wifiEnabled}
+                      onToggle={toggleWifi}
+                      onBack={() => setNectarMode('command-center')}
+                      onPinChange={setNotchPinned}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Bluetooth Devices Panel */}
+              <AnimatePresence>
+                {nectarMode === 'bluetooth' && (
+                  <motion.div
+                    className="bluetooth-drawer-expanded"
+                    onClick={(e) => e.stopPropagation()}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <BluetoothPanel
+                      enabled={bluetoothEnabled}
+                      onToggle={toggleBluetooth}
+                      onBack={() => setNectarMode('command-center')}
+                      onPinChange={setNotchPinned}
                     />
                   </motion.div>
                 )}
