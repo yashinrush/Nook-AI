@@ -1002,7 +1002,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        padding: '10px 14px 10px',
+        padding: '8px 12px 8px',
         color: '#ffffff',
         userSelect: 'none',
         boxSizing: 'border-box',
@@ -1018,7 +1018,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
           alignItems: 'center',
           gap: '10px',
           width: '100%',
-          height: '42px',
+          height: '36px',
           padding: '0 12px',
           borderRadius: '12px',
           background: 'rgba(255, 255, 255, 0.08)',
@@ -1028,7 +1028,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
           flexShrink: 0,
         }}
       >
-        <Sparkles size={18} color="#a78bfa" />
+        <Sparkles size={16} color="#a78bfa" />
         <input
           ref={inputRef}
           type="text"
@@ -1038,14 +1038,14 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
             if (aiActive) setAiActive(false);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask AI, launch app, search files, convert units (50 usd to inr), calculate..."
+          placeholder="Search apps, files, ask AI, convert units (50 usd to inr)..."
           style={{
             flex: 1,
             background: 'transparent',
             border: 'none',
             outline: 'none',
             color: '#ffffff',
-            fontSize: '13px',
+            fontSize: '12px',
             fontWeight: 500,
           }}
         />
@@ -1109,7 +1109,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
           flex: 1,
           width: '100%',
           overflowY: 'auto',
-          marginTop: '10px',
+          marginTop: '6px',
           display: 'flex',
           flexDirection: 'column',
           gap: '6px',
@@ -1329,8 +1329,8 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '7px 10px',
-                      borderRadius: '10px',
+                      padding: '5px 8px',
+                      borderRadius: '8px',
                       background: isSelected ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
                       border: isSelected ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
                       cursor: 'pointer',
@@ -1340,9 +1340,9 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '7px',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '6px',
                           background: isSelected ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.07)',
                           display: 'flex',
                           alignItems: 'center',
@@ -1356,7 +1356,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
                       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
                         <span
                           style={{
-                            fontSize: '12px',
+                            fontSize: '11.5px',
                             fontWeight: 600,
                             color: '#ffffff',
                             overflow: 'hidden',
@@ -1368,7 +1368,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
                         </span>
                         <span
                           style={{
-                            fontSize: '9.5px',
+                            fontSize: '9px',
                             color: 'rgba(255, 255, 255, 0.5)',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -1398,7 +1398,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
                       ) : item.badge ? (
                         <span
                           style={{
-                            fontSize: '9.5px',
+                            fontSize: '9px',
                             fontWeight: 600,
                             padding: '1px 6px',
                             borderRadius: '5px',

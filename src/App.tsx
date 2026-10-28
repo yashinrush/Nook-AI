@@ -1039,10 +1039,20 @@ function App() {
     }, WHEEL_COOLDOWN_MS);
 
     // Full carousel loop: Command Center <-> Status <-> Music <-> To-Do <-> File Shelf <-> Calendar
-    const musicBeforeStatus = isPlaying && mediaInfo.has_media && settingsMusicModeEnabled;
-    const modes: ('command-center' | 'spotlight' | 'status' | 'music' | 'todo' | 'shelf' | 'calendar')[] = musicBeforeStatus
-      ? ['command-center', 'spotlight', 'music', 'status', 'todo', 'shelf', 'calendar']
-      : ['command-center', 'spotlight', 'status', 'music', 'todo', 'shelf', 'calendar'];
+    // Full carousel loop: Command Center <-> Status <-> Calendar <-> AI Spotlight <-> To-Do <-> File Shelf <-> Music
+    const modes: ('command-center' | 'spotlight' | 'status' | 'music' | 'todo' | 'shelf' | 'calendar')[] = [
+      'command-center',
+      'status',
+      'calendar',
+      'spotlight',
+      'todo',
+      'shelf',
+      'music'
+    ];
+
+
+
+
     const availableModes = modes.filter(m => {
       if (m === 'music' && (!settingsMusicModeEnabled || !mediaInfo.has_media)) return false;
       if (m === 'calendar' && !productivityEnabled) return false;
@@ -1682,7 +1692,7 @@ function App() {
 
   // Calculate width dynamically based on enabled features
   const getDynamicWidth = () => {
-    if (nectarMode === 'spotlight') return 520;
+    if (nectarMode === 'spotlight') return 430;
     if (compactLyricsOpen) return 540;
     if (isCalendarMode) return settingsCalendarEnabled && showClockColumn ? 480 : settingsCalendarEnabled ? 310 : 270;
     if (nectarMode === 'command-center' && isHovered) {
@@ -1693,7 +1703,8 @@ function App() {
       const totalWidgets = statusWidgets.left.length + statusWidgets.right.length;
       return Math.min(200 + totalWidgets * 65, 460);
     }
-    if (nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth') return 480;
+    if (nectarMode === 'shelf') return 390;
+    if (nectarMode === 'todo' || nectarMode === 'wifi' || nectarMode === 'bluetooth') return 480;
     if (isMusicMode && (isHovered || compactLyricsOpen)) {
       return mediaLayout === 'compact' ? 300 : 340;
     }
@@ -1717,13 +1728,13 @@ function App() {
     if (!isExpanded || isHidden) {
       return isImpacted ? 28.9 : 44.2;
     }
-    if (nectarMode === 'spotlight') return 340;
+    if (nectarMode === 'spotlight') return 255;
     if (compactLyricsOpen) return 132;
     if (nectarMode === 'calendar') return settingsCalendarEnabled ? (caldav.connected ? 350 : 310) : 262;
     if (nectarMode === 'command-center') return isHovered ? 230 : 36;
     if (nectarMode === 'status') return 36;
     if (nectarMode === 'todo') return 310;
-    if (nectarMode === 'shelf') return 255;
+    if (nectarMode === 'shelf') return 210;
     if (nectarMode === 'wifi' || nectarMode === 'bluetooth') return 340;
     if (isMusicMode && isHovered) {
       const hasProgressBar = (mediaInfo.duration_ms ?? 0) > 0;
@@ -2451,6 +2462,7 @@ function App() {
                           e.stopPropagation();
                           setNectarMode('spotlight');
                           setIsHovered(true);
+                          invoke('set_notch_keyboard_focus', { focused: true }).catch(() => {});
                         }}
                         title="AI Spotlight Bar (Alt + Space)"
                       >

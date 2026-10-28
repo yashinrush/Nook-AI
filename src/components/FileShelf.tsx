@@ -261,7 +261,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '10px 16px 10px',
+        padding: '8px 12px 6px',
         color: '#eceff7',
         userSelect: 'none',
         boxSizing: 'border-box',
@@ -292,7 +292,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          paddingBottom: '8px',
+          paddingBottom: '6px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           flexShrink: 0,
         }}
@@ -305,8 +305,8 @@ export const FileShelf: React.FC<FileShelfProps> = ({
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}
               style={{
-                width: '24px',
-                height: '24px',
+                width: '22px',
+                height: '22px',
                 borderRadius: '50%',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -325,13 +325,13 @@ export const FileShelf: React.FC<FileShelfProps> = ({
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff' }}>
               File<span style={{ color: '#22c55e' }}>Shelf</span>
             </span>
             <span
               style={{
-                fontSize: '10px',
-                padding: '2px 7px',
+                fontSize: '9px',
+                padding: '1.5px 6px',
                 borderRadius: '999px',
                 backgroundColor: items.length > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.1)',
                 color: items.length > 0 ? '#4ade80' : 'rgba(255, 255, 255, 0.6)',
@@ -483,16 +483,16 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                   whileHover={{ y: -3, scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   style={{
-                    width: '104px',
-                    minWidth: '104px',
-                    height: '128px',
-                    borderRadius: '12px',
+                    width: '92px',
+                    minWidth: '92px',
+                    height: '116px',
+                    borderRadius: '10px',
                     backgroundColor: 'rgba(255, 255, 255, 0.06)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    padding: '8px 7px 6px',
+                    padding: '6px 6px 4px',
                     cursor: 'grab',
                     position: 'relative',
                     overflow: 'hidden',
@@ -531,7 +531,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                   <div
                     style={{
                       width: '100%',
-                      height: '54px',
+                      height: '46px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -570,7 +570,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                     <div
                       style={{
                         width: '100%',
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         fontWeight: 600,
                         color: '#ffffff',
                         overflow: 'hidden',
@@ -586,7 +586,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                     {item.size > 0 ? (
                       <div
                         style={{
-                          fontSize: '9.5px',
+                          fontSize: '8.5px',
                           color: 'rgba(255, 255, 255, 0.5)',
                           marginTop: '2px',
                           lineHeight: '1.1',
@@ -598,7 +598,7 @@ export const FileShelf: React.FC<FileShelfProps> = ({
                     ) : (
                       <div
                         style={{
-                          fontSize: '9.5px',
+                          fontSize: '8.5px',
                           color: '#4ade80',
                           marginTop: '2px',
                           fontWeight: 500,
