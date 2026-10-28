@@ -269,6 +269,27 @@ fn main() {
                 });
             }
 
+            // Global Alt+Space hotkey to toggle AI Spotlight Bar
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || unsafe {
+                    use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, HOT_KEY_MODIFIERS, VK_SPACE};
+                    use windows::Win32::UI::WindowsAndMessaging::{GetMessageA, MSG, WM_HOTKEY};
+                                        use tauri::Emitter;
+
+                    let mods = HOT_KEY_MODIFIERS(0x0001 | 0x4000);
+                    let res = RegisterHotKey(None, 7788, mods, VK_SPACE.0 as u32);
+                    if res.is_ok() {
+                        let mut msg = MSG::default();
+                        while GetMessageA(&mut msg, None, 0, 0).as_bool() {
+                            if msg.message == WM_HOTKEY && msg.wParam.0 == 7788 {
+                                let _ = app_handle.emit("toggle-spotlight", ());
+                            }
+                        }
+                    }
+                });
+            }
+
             crate::calendar_sync::start_background_sync(app.handle().clone());
 
             let window = app.get_webview_window("main").unwrap();

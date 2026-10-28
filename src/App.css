@@ -1554,6 +1554,18 @@ img {
     overflow: hidden;
 }
 
+.spotlight-drawer-expanded {
+    position: absolute;
+    top: 36px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 36px);
+    box-sizing: border-box;
+    z-index: 2;
+    border-radius: 0 0 28px 28px;
+    overflow: hidden;
+}
+
 /* Command Center Panel - Minimal */
 .command-center-content-minimal {
     position: absolute;

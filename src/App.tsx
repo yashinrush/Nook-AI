@@ -22,6 +22,7 @@ import { TodoList } from "./components/TodoList";
 import { FileShelf } from "./components/FileShelf";
 import { WifiPanel } from "./components/WifiPanel";
 import { BluetoothPanel } from "./components/BluetoothPanel";
+import { SpotlightBar } from "./components/SpotlightBar";
 import {
   Cpu,
   MemoryStick,
@@ -32,6 +33,7 @@ import {
   Eye,
   FolderDown,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 
 // Timer chime, synthesized with Web Audio so there's no asset. The context is made on the
@@ -862,7 +864,7 @@ function App() {
     invoke("change_notch_mode", { mode: notchMode });
   }, [notchMode, windowLabel]);
 
-  const [nectarMode, setNectarMode] = useState<'music' | 'calendar' | 'command-center' | 'status' | 'todo' | 'shelf' | 'wifi' | 'bluetooth'>('status');
+  const [nectarMode, setNectarMode] = useState<'music' | 'calendar' | 'command-center' | 'status' | 'todo' | 'shelf' | 'wifi' | 'bluetooth' | 'spotlight'>('status');
   const notchPinnedRef = useRef(false);
   const setNotchPinned = useCallback((pinned: boolean) => {
     notchPinnedRef.current = pinned;
@@ -1669,6 +1671,7 @@ function App() {
 
   // Calculate width dynamically based on enabled features
   const getDynamicWidth = () => {
+    if (nectarMode === 'spotlight') return 520;
     if (compactLyricsOpen) return 540;
     if (isCalendarMode) return settingsCalendarEnabled && showClockColumn ? 480 : settingsCalendarEnabled ? 310 : 270;
     if (nectarMode === 'command-center' && isHovered) {
@@ -1703,6 +1706,7 @@ function App() {
     if (!isExpanded || isHidden) {
       return isImpacted ? 28.9 : 44.2;
     }
+    if (nectarMode === 'spotlight') return 340;
     if (compactLyricsOpen) return 132;
     if (nectarMode === 'calendar') return settingsCalendarEnabled ? (caldav.connected ? 350 : 310) : 262;
     if (nectarMode === 'command-center') return isHovered ? 230 : 36;
@@ -1746,14 +1750,32 @@ function App() {
       if (e.key === 'Escape') {
         if (compactLyricsOpen) {
           handleCompactLyricsChange(false);
+        } else if (nectarMode === 'spotlight') {
+          setNectarMode('status');
         } else if (nectarMode === 'wifi' || nectarMode === 'bluetooth') {
           setNectarMode('command-center');
         }
+      }
+      if (e.altKey && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        setNectarMode(prev => prev === 'spotlight' ? 'status' : 'spotlight');
+        setIsHovered(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [compactLyricsOpen, nectarMode, handleCompactLyricsChange]);
+
+  useEffect(() => {
+    let unlisten: any;
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen('toggle-spotlight', () => {
+        setNectarMode(prev => prev === 'spotlight' ? 'status' : 'spotlight');
+        setIsHovered(true);
+      }).then(fn => { unlisten = fn; });
+    }).catch(() => {});
+    return () => { if (unlisten) unlisten(); };
+  }, []);
 
   const activeMediaInfo: MediaInfo = (mediaInfo.has_media && mediaInfo.title) ? mediaInfo : {
     title: mediaInfo.title || "Paper Sky",
@@ -1804,8 +1826,8 @@ function App() {
           scaleY: 1,
           borderTopLeftRadius: isImpacted ? 0 : 18,
           borderTopRightRadius: isImpacted ? 0 : 18,
-          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'command-center') ? 28 : 18,
-          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'command-center') ? 28 : 18,
+          borderBottomLeftRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'command-center' || nectarMode === 'spotlight') ? 28 : 18,
+          borderBottomRightRadius: (isCalendarMode || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'command-center' || nectarMode === 'spotlight') ? 28 : 18,
           filter: "blur(0px)",
           pointerEvents: 'auto'
         }}
@@ -2404,14 +2426,20 @@ function App() {
                       <button
                         className={`cc-circular-btn ${dndActive ? 'active' : ''}`}
                         onClick={(e) => { e.stopPropagation(); setDndActive(prev => !prev); }}
+                        title="Do Not Disturb"
                       >
                         <MoonIcon />
                       </button>
                       <button
-                        className={`cc-circular-btn ${batterySaverEnabled ? 'active' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); openBatterySaverSettings(); }}
+                        className="cc-circular-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNectarMode('spotlight');
+                          setIsHovered(true);
+                        }}
+                        title="AI Spotlight Bar (Alt + Space)"
                       >
-                        <BatterySaverIcon />
+                        <Sparkles size={14} color="#a78bfa" />
                       </button>
                       <button
                         className={`cc-circular-btn ${!dockEnabled ? 'active' : ''}`}
@@ -2472,8 +2500,16 @@ function App() {
                         <Eye size={14} />
                       </button>
                       <button
+                        className={`cc-circular-btn ${batterySaverEnabled ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); openBatterySaverSettings(); }}
+                        title="Battery Saver Settings"
+                      >
+                        <BatterySaverIcon />
+                      </button>
+                      <button
                         className="cc-circular-btn"
                         onClick={(e) => { e.stopPropagation(); invoke("restart_nectar"); }}
+                        title="Restart Nook"
                       >
                         <ReloadIcon />
                       </button>
@@ -2600,6 +2636,23 @@ function App() {
                       isDraggingExternal={isDraggingOverNotch}
                       onDropComplete={() => setIsDraggingOverNotch(false)}
                     />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* AI Spotlight Bar Mode */}
+              <AnimatePresence>
+                {nectarMode === 'spotlight' && (
+                  <motion.div
+                    className="spotlight-drawer-expanded"
+                    onClick={(e) => e.stopPropagation()}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <SpotlightBar onBack={() => setNectarMode('status')} />
                   </motion.div>
                 )}
               </AnimatePresence>
