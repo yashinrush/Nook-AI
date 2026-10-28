@@ -538,6 +538,41 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
       .catch(() => {});
   }, []);
 
+  const handleLaunchApp = useCallback(
+    (app: { name: string; path?: string; cmd?: string }) => {
+      const target = app.path || app.cmd || app.name;
+      const aName = (app.name || '').toLowerCase();
+      const aCmd = (app.cmd || '').toLowerCase();
+
+      const installed = installedApps.find((inst) => {
+        const iName = (inst.name || '').toLowerCase();
+        const iExe = (inst.executable || '').toLowerCase();
+        return iName === aName || (aCmd && (iName.includes(aCmd) || iExe.includes(aCmd)));
+      });
+
+      const pathToLaunch = installed?.path || target;
+
+      invoke('open_app', { appName: pathToLaunch, args: null })
+        .catch(() => {
+          if (installed?.path) {
+            invoke('launch_new_instance', {
+              appPath: installed.path,
+              appName: installed.name,
+              args: null,
+            }).catch(() => {
+              invoke('open_file_path', { path: pathToLaunch }).catch(() => {});
+            });
+          } else {
+            invoke('open_file_path', { path: pathToLaunch }).catch(() => {});
+          }
+        });
+
+      onBack();
+    },
+    [installedApps, onBack]
+  );
+
+
   // Built-in standard quick apps
   const standardApps = useMemo(
     () => [
@@ -684,10 +719,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
           subtitle: `Launch ${app.name}`,
           icon: app.icon,
           badge: 'App',
-          action: () => {
-            invoke('open_app', { appName: app.cmd, args: null }).catch(() => {});
-            onBack();
-          },
+          action: () => handleLaunchApp(app),
         });
       });
 
@@ -808,10 +840,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
         subtitle: `Launch ${app.name}`,
         icon: app.icon,
         badge: 'App',
-        action: () => {
-          invoke('open_app', { appName: app.cmd, args: null }).catch(() => {});
-          onBack();
-        },
+        action: () => handleLaunchApp(app),
       });
     });
 
@@ -836,16 +865,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
           <AppWindow size={16} color="#60a5fa" />
         ),
         badge: 'Installed',
-        action: () => {
-          if (app.path) {
-            invoke('open_file_path', { path: app.path }).catch(() => {
-              invoke('open_app', { appName: app.name, args: null }).catch(() => {});
-            });
-          } else {
-            invoke('open_app', { appName: app.name, args: null }).catch(() => {});
-          }
-          onBack();
-        },
+        action: () => handleLaunchApp(app),
       });
     });
 

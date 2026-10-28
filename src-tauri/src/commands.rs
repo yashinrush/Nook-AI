@@ -825,6 +825,22 @@ fn launch_path(path: &str, args: Option<&str>) {
         
         if res.0 as usize <= 32 {
             eprintln!("Failed to open app {}: error code {}", final_path, res.0 as usize);
+            let matched_path = if let Some(apps_cache) = INSTALLED_APPS_CACHE.get() {
+                if let Ok(apps) = apps_cache.lock() {
+                    apps.iter().find(|a| {
+                        a.name.eq_ignore_ascii_case(&final_path)
+                            || a.executable.as_deref().is_some_and(|e| e.eq_ignore_ascii_case(&final_path))
+                    }).map(|a| a.path.clone())
+                } else { None }
+            } else { None };
+
+            if let Some(target) = matched_path {
+                launch_path(&target, args);
+            } else {
+                let _ = std::process::Command::new("cmd")
+                    .args(["/c", "start", "", &final_path])
+                    .spawn();
+            }
         }
     }
 }
