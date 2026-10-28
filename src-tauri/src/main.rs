@@ -121,6 +121,7 @@ fn main() {
             init_dock,
             show_in_folder,
             open_file_path,
+            search_user_files,
             toggle_dock,
             change_dock_mode,
             change_notch_mode,

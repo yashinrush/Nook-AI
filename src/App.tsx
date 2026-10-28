@@ -995,6 +995,8 @@ function App() {
     }
 
     if (
+      nectarMode === 'spotlight' ||
+      target.closest('.spotlight-drawer-expanded') ||
       target.closest('.calendar-grid') ||
       target.closest('.timer-column') ||
       target.closest('.synced-lyrics-container') ||
@@ -1770,7 +1772,11 @@ function App() {
     let unlisten: any;
     import('@tauri-apps/api/event').then(({ listen }) => {
       listen('toggle-spotlight', () => {
-        setNectarMode(prev => prev === 'spotlight' ? 'status' : 'spotlight');
+        setNectarMode(prev => {
+          const next = prev === 'spotlight' ? 'status' : 'spotlight';
+          invoke('set_notch_keyboard_focus', { focused: next === 'spotlight' }).catch(() => {});
+          return next;
+        });
         setIsHovered(true);
       }).then(fn => { unlisten = fn; });
     }).catch(() => {});
@@ -1836,12 +1842,12 @@ function App() {
         }}
         onHoverStart={() => {
           setIsHovered(true);
-          if (!compactLyricsOpen && nectarMode !== 'todo' && nectarMode !== 'shelf' && nectarMode !== 'calendar' && nectarMode !== 'command-center' && nectarMode !== 'wifi' && nectarMode !== 'bluetooth') {
+          if (!compactLyricsOpen && nectarMode !== 'todo' && nectarMode !== 'shelf' && nectarMode !== 'calendar' && nectarMode !== 'command-center' && nectarMode !== 'wifi' && nectarMode !== 'bluetooth' && nectarMode !== 'spotlight') {
             setNectarMode(mediaInfo.has_media && isPlaying ? 'music' : 'status');
           }
         }}
         onHoverEnd={() => {
-          if (compactLyricsOpen || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || notchPinnedRef.current) return;
+          if (compactLyricsOpen || nectarMode === 'todo' || nectarMode === 'shelf' || nectarMode === 'wifi' || nectarMode === 'bluetooth' || nectarMode === 'spotlight' || notchPinnedRef.current) return;
           setIsHovered(false);
           const targetMode = mediaInfo.has_media && isPlaying && settingsMusicCompactNotch ? 'music' : 'status';
           if (nectarMode === 'music') {

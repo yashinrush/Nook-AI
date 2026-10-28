@@ -130,6 +130,93 @@ pub fn open_file_path(path: String) {
         .spawn();
 }
 
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct SearchFileResult {
+    pub name: String,
+    pub path: String,
+    pub extension: String,
+}
+
+#[tauri::command]
+pub async fn search_user_files(query: String) -> Vec<SearchFileResult> {
+    let q = query.trim().to_lowercase();
+    if q.len() < 2 {
+        return Vec::new();
+    }
+
+    let mut results = Vec::new();
+    let mut visited_paths = std::collections::HashSet::new();
+
+    if let Ok(profile) = std::env::var("USERPROFILE") {
+        let base_dirs = [
+            format!("{}/Desktop", profile),
+            format!("{}/Downloads", profile),
+            format!("{}/Documents", profile),
+        ];
+
+        for dir in &base_dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(file_name) = path.file_name().and_then(|f| f.to_str()) {
+                        let name_lower = file_name.to_lowercase();
+                        if name_lower.contains(&q) {
+                            let path_str = path.to_string_lossy().to_string();
+                            if visited_paths.insert(path_str.clone()) {
+                                let ext = path.extension()
+                                    .and_then(|e| e.to_str())
+                                    .unwrap_or("")
+                                    .to_lowercase();
+                                results.push(SearchFileResult {
+                                    name: file_name.to_string(),
+                                    path: path_str,
+                                    extension: ext,
+                                });
+                                if results.len() >= 8 {
+                                    return results;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let recent_dir = format!("{}/AppData/Roaming/Microsoft/Windows/Recent", profile);
+        if let Ok(entries) = std::fs::read_dir(recent_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(file_name) = path.file_name().and_then(|f| f.to_str()) {
+                    let clean_name = file_name.strip_suffix(".lnk").unwrap_or(file_name);
+                    let name_lower = clean_name.to_lowercase();
+                    if name_lower.contains(&q) {
+                        let path_str = path.to_string_lossy().to_string();
+                        if visited_paths.insert(path_str.clone()) {
+                            let ext = std::path::Path::new(clean_name)
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or("")
+                                .to_lowercase();
+                            results.push(SearchFileResult {
+                                name: clean_name.to_string(),
+                                path: path_str,
+                                extension: ext,
+                            });
+                            if results.len() >= 8 {
+                                return results;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    results
+}
+
+
 #[tauri::command]
 pub async fn init_dock(app: AppHandle, mode: String) {
     // Backend guard: bail if dock is disabled in settings.
