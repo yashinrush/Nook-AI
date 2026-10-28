@@ -232,13 +232,13 @@ pub async fn init_dock_window(app: &AppHandle, dock_win: tauri::WebviewWindow, m
 
 #[tauri::command]
 pub async fn toggle_dock(app: AppHandle, enable: bool) {
-    if let Some(dock_win) = app.get_webview_window("dock") {
-        if enable {
-            // Saved dock mode, smart on a fresh install.
-            let saved_mode = crate::utils::get_setting_str(&app, "nectar-dock-mode")
-                .unwrap_or_else(|| "smart".to_string());
-            init_dock(app.clone(), saved_mode).await;
-        } else {
+    if enable {
+        let saved_mode = crate::utils::get_setting_str(&app, "nectar-dock-mode")
+            .unwrap_or_else(|| "smart".to_string());
+        init_dock(app.clone(), saved_mode).await;
+        let _ = save_setting(app.clone(), "nectar-dock-enabled".into(), serde_json::Value::String("true".into()));
+    } else {
+        if let Some(dock_win) = app.get_webview_window("dock") {
             let _ = dock_win.hide();
             if let Ok(hwnd) = dock_win.hwnd() {
                 let hwnd_val = hwnd.0 as isize;
@@ -247,14 +247,15 @@ pub async fn toggle_dock(app: AppHandle, enable: bool) {
                 });
             }
             crate::state::set_flag(crate::state::dock_appbar_registered(), "dock", false);
-            set_taskbar_visibility(true, true);
-            NATIVE_TASKBAR_HIDDEN.store(false, Ordering::Relaxed);
+        }
+        set_taskbar_visibility(true, true);
+        NATIVE_TASKBAR_HIDDEN.store(false, Ordering::Relaxed);
+        let _ = save_setting(app.clone(), "nectar-dock-enabled".into(), serde_json::Value::String("false".into()));
 
-            // Re-sync other appbars
-            if let Some(main_win) = app.get_webview_window("main") {
-                if crate::state::get_flag(crate::state::main_appbar_registered(), "main") {
-                    register_appbar(main_win);
-                }
+        // Re-sync other appbars
+        if let Some(main_win) = app.get_webview_window("main") {
+            if crate::state::get_flag(crate::state::main_appbar_registered(), "main") {
+                register_appbar(main_win);
             }
         }
     }

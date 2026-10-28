@@ -1531,6 +1531,13 @@ function App() {
 
   const toggleDockModeSetting = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!dockEnabled) {
+      setDockEnabled(true);
+      localStorage.setItem("nectar-dock-enabled", "true");
+      invoke("save_setting", { key: "nectar-dock-enabled", value: "true" }).catch(console.error);
+      invoke("toggle_dock", { enable: true }).catch(console.error);
+      return;
+    }
     const nextMode = dockMode === "fixed" ? "smart" : dockMode === "smart" ? "peek" : "fixed";
     setDockMode(nextMode);
     localStorage.setItem("nectar-dock-mode", nextMode);
@@ -1540,7 +1547,7 @@ function App() {
     } catch (err) {
       console.error("Failed to change dock mode:", err);
     }
-  }, [dockMode]);
+  }, [dockMode, dockEnabled]);
 
   const toggleNotchModeSetting = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -2338,15 +2345,16 @@ function App() {
 
                       {/* Dock Mode Pill */}
                       <div
-                        className={`cc-pill-tile ${dockMode === 'fixed' ? 'active' : ''}`}
+                        className={`cc-pill-tile ${dockEnabled && dockMode === 'fixed' ? 'active' : ''}`}
                         onClick={toggleDockModeSetting}
+                        title={dockEnabled ? `Dock Mode: ${dockMode}` : "Dock disabled: Normal taskbar active (Click to enable)"}
                       >
                         <div className="cc-pill-icon-wrapper">
                           <DockIcon />
                         </div>
                         <div className="cc-pill-info">
                           <span className="cc-pill-title">Dock Mode</span>
-                          <span className="cc-pill-status">{dockMode === 'fixed' ? 'Fixed' : dockMode === 'smart' ? 'Smart' : 'Peek'}</span>
+                          <span className="cc-pill-status">{!dockEnabled ? 'Taskbar' : dockMode === 'fixed' ? 'Fixed' : dockMode === 'smart' ? 'Smart' : 'Peek'}</span>
                         </div>
                       </div>
 
@@ -2406,8 +2414,21 @@ function App() {
                         <BatterySaverIcon />
                       </button>
                       <button
-                        className="cc-circular-btn"
-                        onClick={(e) => { e.stopPropagation(); invoke("open_tray_window"); }}
+                        className={`cc-circular-btn ${!dockEnabled ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextVal = !dockEnabled;
+                          setDockEnabled(nextVal);
+                          localStorage.setItem("nectar-dock-enabled", String(nextVal));
+                          invoke("save_setting", { key: "nectar-dock-enabled", value: String(nextVal) }).catch(() => {});
+                          invoke("toggle_dock", { enable: nextVal }).catch(() => {});
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          invoke("open_tray_window");
+                        }}
+                        title={dockEnabled ? "Switch to Normal Windows Taskbar (Right-click: System Tray)" : "Restore Nook Dock (Right-click: System Tray)"}
                       >
                         <TrayIcon />
                       </button>
