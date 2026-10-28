@@ -441,6 +441,12 @@ function renderInline(str: string): React.ReactNode {
   });
 }
 
+function setKeyboardFocus(focused: boolean) {
+  if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+    invoke('set_notch_keyboard_focus', { focused }).catch(() => {});
+  }
+}
+
 export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -983,7 +989,7 @@ export const SpotlightBar: React.FC<SpotlightProps> = ({ onBack }) => {
         position: 'relative',
         background: 'transparent',
       }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); setKeyboardFocus(true); inputRef.current?.focus(); }}
     >
       {/* Top Search Input Box */}
       <div

@@ -994,9 +994,17 @@ function App() {
       }
     }
 
+    const spotScroll = target.closest('.spotlight-scroll-container') as HTMLElement | null;
+    if (spotScroll && spotScroll.scrollHeight > spotScroll.clientHeight + 4) {
+      const isDown = e.deltaY > 0;
+      const canScrollDown = spotScroll.scrollTop < spotScroll.scrollHeight - spotScroll.clientHeight - 2;
+      const canScrollUp = spotScroll.scrollTop > 2;
+      if ((isDown && canScrollDown) || (!isDown && canScrollUp)) {
+        return;
+      }
+    }
+
     if (
-      nectarMode === 'spotlight' ||
-      target.closest('.spotlight-drawer-expanded') ||
       target.closest('.calendar-grid') ||
       target.closest('.timer-column') ||
       target.closest('.synced-lyrics-container') ||
@@ -1032,9 +1040,9 @@ function App() {
 
     // Full carousel loop: Command Center <-> Status <-> Music <-> To-Do <-> File Shelf <-> Calendar
     const musicBeforeStatus = isPlaying && mediaInfo.has_media && settingsMusicModeEnabled;
-    const modes: ('command-center' | 'status' | 'music' | 'todo' | 'shelf' | 'calendar')[] = musicBeforeStatus
-      ? ['command-center', 'music', 'status', 'todo', 'shelf', 'calendar']
-      : ['command-center', 'status', 'music', 'todo', 'shelf', 'calendar'];
+    const modes: ('command-center' | 'spotlight' | 'status' | 'music' | 'todo' | 'shelf' | 'calendar')[] = musicBeforeStatus
+      ? ['command-center', 'spotlight', 'music', 'status', 'todo', 'shelf', 'calendar']
+      : ['command-center', 'spotlight', 'status', 'music', 'todo', 'shelf', 'calendar'];
     const availableModes = modes.filter(m => {
       if (m === 'music' && (!settingsMusicModeEnabled || !mediaInfo.has_media)) return false;
       if (m === 'calendar' && !productivityEnabled) return false;
@@ -1051,6 +1059,7 @@ function App() {
     const nextMode = availableModes[nextIndex];
     manualMusicRef.current = nextMode === 'music';
     setNectarMode(nextMode);
+    invoke('set_notch_keyboard_focus', { focused: nextMode === 'spotlight' }).catch(() => {});
   };
 
 

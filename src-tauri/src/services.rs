@@ -1932,8 +1932,7 @@ unsafe fn process_mouse_move(app_handle: &AppHandle, cursor: windows::Win32::Fou
                                     // A hidden notch must not eat clicks, in smart/peek it's off screen most of the time.
                                     let notch_hidden = crate::state::get_flag(crate::state::notch_hidden(), "main");
                                     let hover_active = is_notch_hovered || now < MH_TOPBAR_EXPIRY_MS.load(Ordering::Relaxed);
-                                    if (!notch_hidden || hover_active)
-                                        && cursor.x >= rx && cursor.x <= (rx + rw) && cursor.y >= ry_top && cursor.y <= ry_bottom {
+                                    if ((!notch_hidden || hover_active) && cursor.x >= rx && cursor.x <= (rx + rw) && cursor.y >= ry_top && cursor.y <= ry_bottom) || crate::state::is_notch_keyboard_focused() {
                                         is_click_interactive = true;
                                     }
                                     dbg_box = Some((rx, ry_top, rw, ry_bottom - ry_top));
@@ -1970,7 +1969,7 @@ unsafe fn process_mouse_move(app_handle: &AppHandle, cursor: windows::Win32::Fou
                             scale, dbg_box, is_click_interactive, at_top_edge, MH_LAST_MAIN_IGNORE.load(Ordering::Relaxed),
                         ));
 
-                        let final_ignore = !is_click_interactive && !MENU_IS_OPEN.load(Ordering::Relaxed);
+                        let final_ignore = !is_click_interactive && !MENU_IS_OPEN.load(Ordering::Relaxed) && !crate::state::is_notch_keyboard_focused();
                         let prev_ignore = MH_LAST_MAIN_IGNORE.load(Ordering::Relaxed);
                         let new_ignore = if final_ignore { 1 } else { 0 };
                         if prev_ignore != new_ignore {
@@ -2293,7 +2292,7 @@ fn hit_test_extra_notch_windows(app_handle: &AppHandle, cursor: windows::Win32::
             crate::state::set_i32(crate::state::notch_extra_last_edge_hover(), &label, new_hover);
         }
 
-        let final_ignore = !is_click_interactive && !MENU_IS_OPEN.load(Ordering::Relaxed);
+        let final_ignore = !is_click_interactive && !MENU_IS_OPEN.load(Ordering::Relaxed) && !crate::state::is_notch_keyboard_focused();
         let prev_ignore = crate::state::get_i32(crate::state::notch_extra_last_ignore(), &label, -1);
         let new_ignore = if final_ignore { 1 } else { 0 };
         if prev_ignore != new_ignore {
