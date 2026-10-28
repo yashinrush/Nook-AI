@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Visualizer } from './App';
 import { PlayIcon, PauseIcon, SkipBackIcon, SkipForwardIcon, MusicNoteIcon, SpeakerIcon, AudioOutputIcon, VolumeLowIcon, VolumeHighIcon } from './icons';
 import { SyncedLyrics } from './components/SyncedLyrics';
+import { X } from 'lucide-react';
 
 interface MediaInfo {
   title: string;
@@ -264,6 +265,17 @@ export function CompactMediaPlayer({
     return (
       <div
         className="cmp cmp-lyrics-split"
+        onWheel={(e) => {
+          const target = e.target as HTMLElement;
+          // Only scroll-to-exit if wheel is NOT on the lyrics list itself
+          if (!target.closest('.synced-lyrics-list')) {
+            e.stopPropagation();
+            const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+            if (Math.abs(delta) >= 8) {
+              toggleLyrics();
+            }
+          }
+        }}
         style={{
           display: 'flex',
           flexDirection: 'row',
@@ -432,8 +444,42 @@ export function CompactMediaPlayer({
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
+            position: 'relative',
           }}
         >
+          {/* Subtle Close button in upper right */}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleLyrics(); }}
+            title="Close Lyrics"
+            style={{
+              position: 'absolute',
+              top: '2px',
+              right: '4px',
+              zIndex: 10,
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+              transition: 'background 0.2s, color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+            }}
+          >
+            <X size={12} />
+          </button>
+
           <SyncedLyrics
             align="left"
             title={mediaInfo.title}

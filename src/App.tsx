@@ -936,6 +936,17 @@ function App() {
       }
     }
 
+    // Scrolling while lyrics are open exits lyrics mode back to player unless scrolling the lyrics list itself
+    if (compactLyricsOpen) {
+      if (!target.closest('.synced-lyrics-list')) {
+        const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        if (Math.abs(delta) >= 8) {
+          handleCompactLyricsChange(false);
+          return;
+        }
+      }
+    }
+
     if (
       target.closest('.calendar-grid') ||
       target.closest('.timer-column') ||
@@ -1614,7 +1625,7 @@ function App() {
     if (!isExpanded || isHidden) {
       return isImpacted ? 28.9 : 44.2;
     }
-    if (compactLyricsOpen) return 124;
+    if (compactLyricsOpen) return 132;
     if (nectarMode === 'calendar') return settingsCalendarEnabled ? (caldav.connected ? 350 : 310) : 262;
     if (nectarMode === 'command-center') return isHovered ? 230 : 36;
     if (nectarMode === 'status') return 36;
@@ -1641,9 +1652,6 @@ function App() {
     setClassicLyricsOpen(false);
   }, [isHovered, mediaLayout, nectarMode]);
 
-
-
-
   const handleCompactLyricsChange = useCallback((expanded: boolean) => {
     setCompactLyricsOpen(expanded);
     if (!expanded && !isNotchHovered) {
@@ -1652,6 +1660,17 @@ function App() {
       setNectarMode(targetMode);
     }
   }, [isNotchHovered, mediaInfo.has_media, isPlaying, settingsMusicCompactNotch]);
+
+  // Pressing Escape exits lyrics view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && compactLyricsOpen) {
+        handleCompactLyricsChange(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [compactLyricsOpen, handleCompactLyricsChange]);
 
   const activeMediaInfo: MediaInfo = (mediaInfo.has_media && mediaInfo.title) ? mediaInfo : {
     title: mediaInfo.title || "Paper Sky",
@@ -1864,8 +1883,8 @@ function App() {
                               <Visualizer isPlaying={isPlaying} bars={5} height={18} />
                             </div>
                             <motion.button
-                              className={`lyrics-toggle-btn ${classicLyricsOpen ? 'active' : ''}`}
-                              onClick={(e) => { e.stopPropagation(); setClassicLyricsOpen(!classicLyricsOpen); }}
+                              className={`lyrics-toggle-btn ${compactLyricsOpen ? 'active' : ''}`}
+                              onClick={(e) => { e.stopPropagation(); handleCompactLyricsChange(!compactLyricsOpen); }}
                               whileTap={{ scale: 0.9 }}
                               data-tooltip="Synced Lyrics"
                             >

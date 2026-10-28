@@ -20,7 +20,7 @@ interface SyncedLyricsProps {
   className?: string;
 }
 
-// Sample fallback lyrics matching the mockup from Image 1 with continuous timestamps
+// Sample fallback lyrics matching demo track "Paper Sky"
 export const PAPER_SKY_LYRICS: LyricLine[] = [
   { timeMs: 0, text: "Drifting on the morning breeze" },
   { timeMs: 8000, text: "Sunlight falling through the trees" },
@@ -51,31 +51,61 @@ export const PAPER_SKY_LYRICS: LyricLine[] = [
   { timeMs: 245000, text: "Never walk this road alone" },
 ];
 
-// Robust LRC parser handling single/multi-tags and variable decimals
+// Clean track metadata for accurate lyrics matching
+function cleanSongMetadata(title: string, artist: string) {
+  const cleanTitle = (title || '')
+    .replace(/\s*\(feat\..*?\)/gi, '')
+    .replace(/\s*\[feat\..*?\]/gi, '')
+    .replace(/\s*\(ft\..*?\)/gi, '')
+    .replace(/\s*\[ft\..*?\]/gi, '')
+    .replace(/\s*\(official\s*(music)?\s*(video|audio)?\)/gi, '')
+    .replace(/\s*\[official\s*(music)?\s*(video|audio)?\]/gi, '')
+    .replace(/\s*\(audio\)/gi, '')
+    .replace(/\s*\[audio\]/gi, '')
+    .replace(/\s*\(lyric\s*video\)/gi, '')
+    .replace(/\s*\[lyric\s*video\]/gi, '')
+    .replace(/\s*-\s*remaster(ed)?(\s*\d+)?/gi, '')
+    .replace(/\s*\(remaster(ed)?(\s*\d+)?\)/gi, '')
+    .replace(/\s*-\s*live(\s*at.*)?/gi, '')
+    .replace(/\s*\(live(\s*at.*)?\)/gi, '')
+    .replace(/\s*-\s*acoustic(\s*version)?/gi, '')
+    .replace(/\s*\(acoustic(\s*version)?\)/gi, '')
+    .replace(/\s*-\s*radio\s*edit/gi, '')
+    .trim();
+
+  const cleanArtist = (artist || '')
+    .replace(/\s*,\s*.*$/, '')
+    .replace(/\s+feat\..*$/i, '')
+    .replace(/\s+ft\..*$/i, '')
+    .trim();
+
+  return { cleanTitle, cleanArtist };
+}
+
+// Robust LRC parser handling single/multi-tags, millisecond fractions, and musical interludes
 export function parseLrc(lrcText: string): LyricLine[] {
   const lines = lrcText.split('\n');
   const result: LyricLine[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('[ti:') || trimmed.startsWith('[ar:') || trimmed.startsWith('[al:') || trimmed.startsWith('[by:')) {
+    if (!trimmed || trimmed.startsWith('[ti:') || trimmed.startsWith('[ar:') || trimmed.startsWith('[al:') || trimmed.startsWith('[by:') || trimmed.startsWith('[offset:')) {
       continue;
     }
 
-    // Extract text after all timestamp tags
-    const text = trimmed.replace(/\[\d{1,2}:\d{2}(?:[.:]\d{1,3})?\]/g, '').trim();
-    if (!text) continue;
+    // Extract text after timestamp tags
+    const text = trimmed.replace(/\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/g, '').trim();
 
     // Match all timestamp tags in this line
-    const tagRegex = /\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+    const tagRegex = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
     let match: RegExpExecArray | null;
     while ((match = tagRegex.exec(trimmed)) !== null) {
       const minutes = parseInt(match[1], 10);
       const seconds = parseInt(match[2], 10);
       const fracStr = match[3] || '0';
-      const frac = fracStr.length === 1 ? parseInt(fracStr, 10) * 100 : fracStr.length === 2 ? parseInt(fracStr, 10) * 10 : parseInt(fracStr, 10);
+      const frac = parseInt(fracStr.padEnd(3, '0').slice(0, 3), 10);
       const timeMs = minutes * 60000 + seconds * 1000 + frac;
-      result.push({ timeMs, text });
+      result.push({ timeMs, text: text || '♪' });
     }
   }
 
@@ -106,94 +136,111 @@ export const SyncedLyrics: React.FC<SyncedLyricsProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const retryFetchRef = useRef<() => void>(() => {});
 
   // Fetch lyrics when track changes
   useEffect(() => {
-    const cleanTitle = (title || '').trim();
-    const cleanArtist = (artist || '').trim();
+    const rawTitle = (title || '').trim();
+    const rawArtist = (artist || '').trim();
 
-    // Check if demo/sample track "Paper Sky"
-    if (!cleanTitle || cleanTitle.toLowerCase().includes('paper sky') || cleanTitle.toLowerCase() === 'unknown title') {
+    // Check if demo/sample track "Paper Sky" or empty
+    const isDemoTrack =
+      !rawTitle ||
+      rawTitle.toLowerCase().includes('paper sky') ||
+      rawTitle.toLowerCase() === 'unknown title';
+
+    if (isDemoTrack) {
       setLyrics(PAPER_SKY_LYRICS);
       setPlainLyrics(null);
       setError(null);
       setLoading(false);
+      lineRefs.current = [];
       return;
     }
 
     let isCancelled = false;
     setLoading(true);
     setError(null);
-
-    const strippedTitle = cleanTitle
-      .replace(/\s*\(feat\..*?\)/gi, '')
-      .replace(/\s*\[feat\..*?\]/gi, '')
-      .replace(/\s*-.*remaster.*$/gi, '')
-      .trim();
+    setLyrics([]);
+    setPlainLyrics(null);
+    lineRefs.current = [];
 
     const fetchLyrics = async () => {
       try {
-        const durationSec = durationMs > 0 ? Math.round(durationMs / 1000) : 0;
-        let url = `https://lrclib.net/api/get?track_name=${encodeURIComponent(strippedTitle)}&artist_name=${encodeURIComponent(cleanArtist)}`;
-        if (durationSec > 0) {
-          url += `&duration=${durationSec}`;
-        }
+        const { cleanTitle, cleanArtist } = cleanSongMetadata(rawTitle, rawArtist);
 
-        let res = await fetch(url, { headers: { 'User-Agent': 'Nook-Windows-Notch/1.4' } });
+        // Try candidate queries in order of precision
+        const queries = [
+          `${cleanArtist} ${cleanTitle}`.trim(),
+          cleanTitle,
+          rawTitle
+        ].filter((q, idx, arr) => q.length > 0 && arr.indexOf(q) === idx);
 
-        if (!res.ok) {
-          // Fallback to search endpoint
-          const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(strippedTitle)}${cleanArtist ? `&artist_name=${encodeURIComponent(cleanArtist)}` : ''}`;
-          const searchRes = await fetch(searchUrl, { headers: { 'User-Agent': 'Nook-Windows-Notch/1.4' } });
-          if (searchRes.ok) {
-            const list = await searchRes.json();
-            if (Array.isArray(list) && list.length > 0) {
-              const item = list.find((i: any) => i.syncedLyrics) || list[0];
-              if (!isCancelled) {
-                if (item.syncedLyrics) {
-                  setLyrics(parseLrc(item.syncedLyrics));
-                } else if (item.plainLyrics) {
-                  setPlainLyrics(item.plainLyrics);
-                } else {
-                  setLyrics(PAPER_SKY_LYRICS);
+        let foundItem: any = null;
+
+        for (const query of queries) {
+          if (isCancelled) return;
+          try {
+            const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`;
+            const res = await fetch(searchUrl);
+            if (res.ok) {
+              const list = await res.json();
+              if (Array.isArray(list) && list.length > 0) {
+                foundItem = list.find((i: any) => i.syncedLyrics) || list.find((i: any) => i.plainLyrics) || list[0];
+                if (foundItem && (foundItem.syncedLyrics || foundItem.plainLyrics)) {
+                  break;
                 }
               }
-              return;
             }
+          } catch {
+            // Continue to next query
           }
-          // If search fails or not found, fallback gracefully to sample lyrics
-          if (!isCancelled) {
-            setLyrics(PAPER_SKY_LYRICS);
+        }
+
+        if (isCancelled) return;
+
+        if (foundItem?.syncedLyrics) {
+          const parsed = parseLrc(foundItem.syncedLyrics);
+          if (parsed.length > 0) {
+            setLyrics(parsed);
+            setError(null);
+            return;
           }
+        }
+
+        if (foundItem?.plainLyrics) {
+          setPlainLyrics(foundItem.plainLyrics);
+          setError(null);
           return;
         }
 
-        const data = await res.json();
-        if (isCancelled) return;
-
-        if (data.syncedLyrics) {
-          setLyrics(parseLrc(data.syncedLyrics));
-        } else if (data.plainLyrics) {
-          setPlainLyrics(data.plainLyrics);
-        } else {
-          setLyrics(PAPER_SKY_LYRICS);
-        }
+        // Real song without lyrics available: show clean unavailable notice (not fake lyrics)
+        setError('Instrumental or lyrics unavailable');
       } catch {
         if (!isCancelled) {
-          // Fallback gracefully so lyrics UI is never blank
-          setLyrics(PAPER_SKY_LYRICS);
+          setError('Instrumental or lyrics unavailable');
         }
       } finally {
         if (!isCancelled) setLoading(false);
       }
     };
 
+    retryFetchRef.current = fetchLyrics;
     fetchLyrics();
 
     return () => {
       isCancelled = true;
     };
   }, [title, artist, durationMs]);
+
+  // Reset line references when lyrics change
+  useEffect(() => {
+    lineRefs.current = [];
+    setTranslateY(0);
+    setUserScrollOffset(0);
+    isUserScrollingRef.current = false;
+    setIsUserScrolling(false);
+  }, [lyrics]);
 
   // Determine active lyric index based on current playback position
   const activeIndex = useMemo(() => {
@@ -233,13 +280,11 @@ export const SyncedLyrics: React.FC<SyncedLyricsProps> = ({
     setTranslateY(targetY);
   }, [activeIndex, align]);
 
-  // Re-position list whenever activeIndex changes
+  // Re-position list whenever activeIndex changes (unless user is actively peeking)
   useLayoutEffect(() => {
-    isUserScrollingRef.current = false;
-    setIsUserScrolling(false);
-    setUserScrollOffset(0);
-
-    updatePosition();
+    if (!isUserScrollingRef.current) {
+      updatePosition();
+    }
   }, [activeIndex, updatePosition]);
 
   // Re-calculate position when container resizes (e.g. notch expansion animation)
@@ -260,7 +305,7 @@ export const SyncedLyrics: React.FC<SyncedLyricsProps> = ({
 
     setUserScrollOffset((prev) => {
       const next = prev - e.deltaY * 0.7;
-      const maxScroll = Math.max(150, lyrics.length * 36);
+      const maxScroll = Math.max(180, lyrics.length * 36);
       return Math.max(-maxScroll, Math.min(maxScroll, next));
     });
 
@@ -270,7 +315,7 @@ export const SyncedLyrics: React.FC<SyncedLyricsProps> = ({
       setIsUserScrolling(false);
       setUserScrollOffset(0);
       updatePosition();
-    }, 2000);
+    }, 2500);
   };
 
   // 1-line Compact Ticker mode (for inside unhovered notch or small bar)
@@ -340,9 +385,41 @@ export const SyncedLyrics: React.FC<SyncedLyricsProps> = ({
       )}
 
       {!loading && error && lyrics.length === 0 && !plainLyrics && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#8c94a8', fontSize: '12px', margin: 'auto' }}>
-          <Music size={14} style={{ opacity: 0.5 }} />
-          <span>Instrumental or lyrics unavailable</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#8c94a8', margin: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+            <Music size={14} style={{ opacity: 0.5 }} />
+            <span>Instrumental or lyrics unavailable</span>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              retryFetchRef.current();
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#d1d5db',
+              fontSize: '11px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.color = '#d1d5db';
+            }}
+          >
+            <RefreshCw size={10} />
+            <span>Retry</span>
+          </button>
         </div>
       )}
 
